@@ -119,7 +119,6 @@ namespace custard {
         }
         void init(std::string filename="", size_t siz=0)
         {
-            std::cerr << "custard::Header::init file:"<<filename<<", size:"<<siz<<std::endl;
             clear();
             memcpy(name_, filename.data(), std::min(filename.size(), 100UL));
             encode_null(mode_, 0644, 8);
@@ -209,11 +208,9 @@ namespace custard {
         void write_start(std::ostream& so, std::string filename,
                          size_t datasize)
         {
-            assert(so);
             loc = 0;
             head.init(filename, datasize);
             so.write((char*)head.as_bytes(), 512);
-            assert(so);
         }
 
         // Write some data to current file, not overflowing file size.
@@ -221,15 +218,12 @@ namespace custard {
         size_t write_data(std::ostream& so, const char* data,
                         size_t datasize)
         {
-            assert(so);
             size_t remain = head.size() - loc;
             size_t take = std::min(datasize, remain);
             so.write(data, take);
             loc += take;
-            assert(so);
             if (loc == head.size()) {
                 write_pad(so);
-                assert(so);
                 clear();
             }
 
@@ -241,11 +235,8 @@ namespace custard {
         size_t write_file(std::ostream& so, std::string filename,
                         const char* data, size_t datasize)
         {
-            assert(so);
             write_start(so, filename, datasize);
-            assert(so);
             size_t ret = write_data(so, data, datasize);
-            assert(so);
             return ret;
         }
 
@@ -256,13 +247,9 @@ namespace custard {
             if (pad == 0) {
                 return;
             }
-            assert(so);
             for (size_t ind=0; ind<pad; ++ind) {
                 so.put('\0');
-                assert(so);
             };
-            std::cerr << "Pad file at " << loc << " + " << pad << " = " << loc+pad
-                      << std::endl;
         }
         
         // GNU manual on tar file format: at the end of the archive
@@ -281,8 +268,6 @@ namespace custard {
             for (size_t ind=0; ind<nblocks*512; ++ind) {
                 so.put('\0');
             };
-            std::cerr << "End archive with " << nblocks << " blocks"
-                      << std::endl;
         }
 
         // Begin a file read, return file size or zero on error.
