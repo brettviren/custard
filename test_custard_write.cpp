@@ -30,22 +30,32 @@ int main(int argc, char* argv[])
     }
     out.push(fout);
 
-    custard::Header th;
+    custard::File tar;
     for (size_t ind = 2; ind<argc; ++ind) {
-        std::string fname(argv[ind]);
-        std::ifstream ifs(fname, std::ifstream::ate | std::ifstream::binary);
+        std::string realname(argv[ind]);
+        std::string fname = realname;
+        if (fname[0] == '/') {
+            fname.erase(fname.begin());
+        }
+        std::ifstream ifs(realname, std::ifstream::ate | std::ifstream::binary);
         if (!ifs) {
-            std::cerr << "No such file: " << fname << std::endl;
+            std::cerr << "No such file: " << realname << std::endl;
             continue;
         }
         auto siz = ifs.tellg();
         std::string buf(siz, 0);
         ifs.seekg(0);
         ifs.read(&buf[0], siz);
-        std::cerr << "read " << fname << " " << siz << " bytes\n";
-        th.write(out, fname, buf.data(), siz);
-        std::cerr << "wrote " << fname << " " << siz << " bytes\n";
+        ifs.close();
+
+        std::cerr << "read " << realname << " " << siz << " bytes\n";
+        auto got = tar.write_file(out, fname, buf.data(), siz);
+        std::cerr << "wrote " << fname << " " << got << " bytes\n";
+        assert(out);
+        assert(got == siz);
+        assert(tar.header().size() == 0);
     }
+    tar.write_finish(out);
     out.flush();
 
     return 0;
