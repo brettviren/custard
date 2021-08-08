@@ -11,8 +11,6 @@
 #include <sstream>
 #include <algorithm>
 
-#include <iostream>             // tmp debug
-
 // This and other from
 // https://techoverflow.net/2013/03/29/reading-tar-files-in-c/
 // Converts an ascii digit to the corresponding number
@@ -105,11 +103,22 @@ namespace custard {
         }
 
 
+        void pad_next(std::ostream& so, size_t pad) {
+            for (size_t ind=0; ind<pad; ++ind) {
+                so.put('\0');
+            };
+        }
+
         void write(std::ostream& so, std::string filename,
                    const char* data, size_t datasize) {
             prepare(filename, datasize);
             so.write((char*)this, 512);
             so.write(data, datasize);
+            size_t pad = 512 - datasize%512;
+            if (pad == 0) {
+                return;
+            }
+            pad_next(so, pad);
         }
 
         // Read just next header, assuming stream is correctly

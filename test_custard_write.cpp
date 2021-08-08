@@ -42,9 +42,11 @@ int main(int argc, char* argv[])
         std::string buf(siz, 0);
         ifs.seekg(0);
         ifs.read(&buf[0], siz);
+        std::cerr << "read " << fname << " " << siz << " bytes\n";
         th.write(out, fname, buf.data(), siz);
-        std::cerr << "added " << fname << " " << siz << " bytes\n";
+        std::cerr << "wrote " << fname << " " << siz << " bytes\n";
     }
+    out.flush();
 
     return 0;
 }
