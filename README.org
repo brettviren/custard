@@ -4,11 +4,12 @@
 
 *custard* provides two header-only libraries:
 
-- [[file:custard.hpp]] stand-alone C++ interface to reading and writing
-  tar streams via ~std::ostream~ (or derived)
+- [[file:custard.hpp]] :: stand-alone, header-only C++ interface to
+  reading and writing tar streams via ~std::ostream~ (or derived)
 
 - [[file:boost_custard.hpp]] ~boost::iostreams~ input filters ~tar_reader~ and
-  output filter ~tar_writer~.  This depends on ~custard.hpp~
+  output filter ~tar_writer~.  This is header-only and depends on
+  ~custard.hpp~
 
 The filters require the user to follow a simple streaming protocol
 which serializes 
@@ -30,6 +31,12 @@ examples see:
 Additional tar metadata is set automatically by *custard* and not
 currently configurable.
 
+
+* Also
+
+*custard* also includes 
+
+- [[file:pigenc.hpp]] :: support for Python Numpy file codec
 
 * License
 
