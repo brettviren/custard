@@ -3,7 +3,7 @@
 set -e
 set -x
 
-prog=test_inband
+prog=${1:-test_boost_custard_write}
 
 files=(GPL GPL2 $HOME/unnamed.jpg)
 

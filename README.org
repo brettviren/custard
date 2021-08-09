@@ -7,7 +7,7 @@ custard provides
 - [[file:custard.hpp]] a C++ interface to reading and writing tar streams
   via ~std::ostream~ (or derived)
 
-- [[file:boost_custard.hpp]] ~boost::iostreams~ tar input (tbd) and output
+- [[file:boost_custard.hpp]] ~boost::iostreams~ tar input and output
   filters.
 
 The filters follow a simple streaming protocol which is exposed to the
@@ -25,7 +25,5 @@ Additional tar metadata is set automatically and not currently
 configurable.
 
 * Todo
-
-- [ ] input filter
 
 - [ ] proper build/test/licensing
