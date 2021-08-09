@@ -1,3 +1,7 @@
+/**
+   A tar reader and writer as boost::iostreams filters.
+ */
+
 #ifndef boost_custart_hpp
 #define boost_custart_hpp
 
@@ -10,7 +14,7 @@ namespace custard {
 
     // This is a stateful filter which parses the stream for
     // [filename]\n[size-as-string]\n[file body of given size][filename]\n....
-    class output_filter : public boost::iostreams::multichar_output_filter {
+    class tar_writer : public boost::iostreams::multichar_output_filter {
       public:
 
         std::streamsize slurp_filename(const char* s, std::streamsize n)
@@ -130,7 +134,7 @@ namespace custard {
     // This filter inputs a tar stream and produces a stream matching
     // the output_filter's input expectation:
     // [filename]\n[size-as-string]\n[file body of given size][filename]\n....
-    class input_filter : public boost::iostreams::multichar_input_filter {
+    class tar_reader : public boost::iostreams::multichar_input_filter {
       public:
 
         template<typename Source>

@@ -1,29 +1,42 @@
-#+title: 🍮
+#+title: 🍮 custard
 
 * Overview
 
-custard provides
+*custard* provides two header-only libraries:
 
-- [[file:custard.hpp]] a C++ interface to reading and writing tar streams
-  via ~std::ostream~ (or derived)
+- [[file:custard.hpp]] stand-alone C++ interface to reading and writing
+  tar streams via ~std::ostream~ (or derived)
 
-- [[file:boost_custard.hpp]] ~boost::iostreams~ tar input and output
-  filters.
+- [[file:boost_custard.hpp]] ~boost::iostreams~ input filters ~tar_reader~ and
+  output filter ~tar_writer~.  This depends on ~custard.hpp~
 
-The filters follow a simple streaming protocol which is exposed to the
-application.  A custard tar stream has three parts:
+The filters require the user to follow a simple streaming protocol
+which serializes 
 
-1. file name as stored in the archive (app should remove initial ~/~).
-2. file size measured in bytes and represented as ASCII.
-3. file body.
+1. file name 
+2. file size (as string)
+3. file body
 
-The first and the second shall has a newline ~\n~ character appended.
-Note, the file body does not have an added newline.  Any number of
-files may be streamed by simply repeating these triplets.
+The file name and file size strings must end with a newline ~\n~
+character and the file body has no delimiter.
 
-Additional tar metadata is set automatically and not currently
-configurable.
+Subsequent files may be streamed by repeating this pattern.  For
+examples see:
+
+- [[file:test_boost_custard_write.cpp]] :: First argument is a tar file (~.tar~, ~.tar.gz~ or ~.tar.bz2~) to write and subsequent arguments give files to archive.
+
+- [[file:test_boost_custard_read.cpp]] :: Single argument is a tar file (~.tar~, ~.tar.gz~ or ~.tar.bz2~) to read.  File names and sizes are printed.  No files are written.
+
+Additional tar metadata is set automatically by *custard* and not
+currently configurable.
+
+
+* License
+
+*custard* is free software and may be used under the terms described in
+the file [[file:COPYING][COPYING]].  
+
 
 * Todo
 
-- [ ] proper build/test/licensing
+- [ ] proper build/test

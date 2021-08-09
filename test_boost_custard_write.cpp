@@ -22,11 +22,11 @@ int main(int argc, char* argv[])
     } else if (boost::algorithm::iends_with(filename, ".bz2")) {
         out.push(bzip2_compressor());
     } else if (boost::algorithm::iends_with(filename, ".tar")) {
-        out.push(custard::output_filter());
+        out.push(custard::tar_writer());
     } else if (boost::algorithm::iends_with(filename, ".tar.gz")) {
-        out.push(custard::output_filter());
+        out.push(custard::tar_writer());
     } else if (boost::algorithm::iends_with(filename, ".tar.bz2")) {
-        out.push(custard::output_filter());
+        out.push(custard::tar_writer());
     } else {
         std::cerr << "Unknown file suffix: " << filename << std::endl;
         return 1;
@@ -58,19 +58,3 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-
-int _main()
-{
-    filtering_ostream out;
-    out.push(custard::output_filter());
-    out.push(file_sink("test_inband.tar"));
-    
-    std::string msg1 = "some file content\n";
-    std::string msg2 = "SOME MORE FILE CONTENT\n";
-
-    out << "fileA.txt\n" << msg1.size() << "\n" << msg1;
-    out << "fileB.txt\n" << msg2.size() << "\n" << msg2;
-    out.flush();
-
-    return 0;
-}

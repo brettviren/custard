@@ -4,3 +4,6 @@ test_custard_read
 test_custard_write
 test_inband
 cut
+test_boost_custard_read
+test_boost_custard_write
+*.od

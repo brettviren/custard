@@ -20,11 +20,11 @@ int main(int argc, char* argv[])
     } else if (boost::algorithm::iends_with(filename, ".bz2")) {
         fstr.push(bzip2_decompressor());
     } else if (boost::algorithm::iends_with(filename, ".tar")) {
-        fstr.push(custard::input_filter());
+        fstr.push(custard::tar_reader());
     } else if (boost::algorithm::iends_with(filename, ".tar.gz")) {
-        fstr.push(custard::input_filter());
+        fstr.push(custard::tar_reader());
     } else if (boost::algorithm::iends_with(filename, ".tar.bz2")) {
-        fstr.push(custard::input_filter());
+        fstr.push(custard::tar_reader());
     } else {
         std::cerr << "Unknown file suffix: " << filename << std::endl;
         return 1;
