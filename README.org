@@ -25,7 +25,7 @@ examples see:
 
 - [[file:test_boost_custard_write.cpp]] :: First argument is a tar file (~.tar~, ~.tar.gz~ or ~.tar.bz2~) to write and subsequent arguments give files to archive.
 
-- [[file:test_boost_custard_read.cpp]] :: Single argument is a tar file (~.tar~, ~.tar.gz~ or ~.tar.bz2~) to read.  File names and sizes are printed.  No files are written.
+- [[file:test_boost_custard_read.cpp]] :: Single argument is a tar file (~.tar~, ~.tar.gz~ or ~.tar.bz2~) to read.  File names and sizes are printed and archive files are written.
 
 Additional tar metadata is set automatically by *custard* and not
 currently configurable.

@@ -53,6 +53,9 @@ int main(int argc, char* argv[])
             std::cerr << "eof after read body\n";
             break;
         }
+        std::ofstream one(fname);
+        one << buf;
+
         //std::cerr << buf << std::endl;
 
     }
