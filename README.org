@@ -7,15 +7,15 @@
 - [[file:custard.hpp]] :: stand-alone, header-only C++ interface to
   reading and writing tar streams via ~std::ostream~ (or derived)
 
-- [[file:boost_custard.hpp]] ~boost::iostreams~ input filters ~tar_reader~ and
+- [[file:boost_custard.hpp]] :: ~boost::iostreams~ input filters ~tar_reader~ and
   output filter ~tar_writer~.  This is header-only and depends on
   ~custard.hpp~
 
 The filters require the user to follow a simple streaming protocol
-which serializes 
+which serializes to/from the stream, in order:
 
-1. file name 
-2. file size (as string)
+1. file name + ~'\n'~
+2. file size (as string) + ~'\n'~
 3. file body
 
 The file name and file size strings must end with a newline ~\n~
