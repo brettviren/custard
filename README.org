@@ -38,6 +38,10 @@ currently configurable.
 
 - [[file:pigenc.hpp]] :: support for Python Numpy file codec
 
+Example and test:
+
+- [[file:test_pigenc.cpp]] :: run with no arguments, creates ~test_pigenc.npy~
+
 * License
 
 *custard* is free software and may be used under the terms described in
