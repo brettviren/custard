@@ -42,6 +42,16 @@ Example and test:
 
 - [[file:test_pigenc.cpp]] :: run with no arguments, creates ~test_pigenc.npy~
 
+* tar + npy = 💕
+
+#+begin_src python
+import io, numpy, tarfile
+t = tarfile.open("npy.tar")
+a = io.BytesIO()
+a.write(t.extractfile('bar.npy').read())
+arr = numpy.load(a)
+#+end_src
+
 * License
 
 *custard* is free software and may be used under the terms described in
