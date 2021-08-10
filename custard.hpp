@@ -42,7 +42,7 @@ namespace custard {
         memcpy(var, s.data(), 8);
     }
     inline
-    void encode_null(char* var, int64_t val, int odigits) {
+    void encode_null(char* var, int64_t val, size_t odigits) {
         std::stringstream ss;
         ss << std::oct << val;
         std::string s = ss.str();
@@ -53,7 +53,7 @@ namespace custard {
         memcpy(var, s.data(), odigits);
     }
     inline
-    std::string encode_octal(int64_t val, int odigits) {
+    std::string encode_octal(int64_t val, size_t odigits) {
         std::stringstream ss;
         ss << std::oct << val;
         std::string s = ss.str();
@@ -64,7 +64,7 @@ namespace custard {
     }
 
     inline
-    void encode_octal_copy(char* var, int64_t val, int odigits) {
+    void encode_octal_copy(char* var, int64_t val, size_t odigits) {
         auto s = encode_octal(val, odigits);
         memcpy(var, s.data(), odigits);
     }
