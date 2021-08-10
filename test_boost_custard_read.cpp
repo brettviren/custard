@@ -15,21 +15,7 @@ int main(int argc, char* argv[])
 {
     filtering_istream fstr;
     std::string filename(argv[1]);
-    if (boost::algorithm::iends_with(filename, ".gz")) {
-        fstr.push(gzip_decompressor());
-    } else if (boost::algorithm::iends_with(filename, ".bz2")) {
-        fstr.push(bzip2_decompressor());
-    } else if (boost::algorithm::iends_with(filename, ".tar")) {
-        fstr.push(custard::tar_reader());
-    } else if (boost::algorithm::iends_with(filename, ".tar.gz")) {
-        fstr.push(custard::tar_reader());
-    } else if (boost::algorithm::iends_with(filename, ".tar.bz2")) {
-        fstr.push(custard::tar_reader());
-    } else {
-        std::cerr << "Unknown file suffix: " << filename << std::endl;
-        return 1;
-    }
-    fstr.push(file_source(filename));
+    custard::input_filters(fstr, filename);
 
     while (true) {
         if (fstr.eof()) {

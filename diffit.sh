@@ -5,13 +5,18 @@ set -x
 
 prog=${1:-test_boost_custard_write}
 
-files=(GPL GPL2 $HOME/unnamed.jpg)
+files=(COPYING custard.hpp boost_custard.hpp)
+
+rm -rf diffit
+mkdir -p diffit
+cp ${files[*]} diffit/
 
 g++ -o $prog $prog.cpp -lboost_iostreams
 
+cd diffit/
 touch ${files[*]}
-./$prog     cus.tar ${files[*]}
-tar -b2 -cf gnu.tar ${files[*]}
+../$prog     cus.tar ${files[*]}
+tar  -b2 -cf gnu.tar ${files[*]}
 
 od -a cus.tar > cus.od
 od -a gnu.tar > gnu.od
@@ -22,4 +27,4 @@ tar -tvf cus.tar
 ls -l gnu.tar
 tar -tvf gnu.tar
 
-
+cd ..

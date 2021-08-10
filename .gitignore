@@ -7,3 +7,4 @@ cut
 test_boost_custard_read
 test_boost_custard_write
 *.od
+diffit

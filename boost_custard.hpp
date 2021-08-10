@@ -9,8 +9,15 @@
 
 #include <boost/iostreams/concepts.hpp>    // multichar_output_filter
 #include <boost/iostreams/operations.hpp> // write
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filter/bzip2.hpp>
 
 namespace custard {
+
 
     // This is a stateful filter which parses the stream for
     // [filename]\n[size-as-string]\n[file body of given size][filename]\n....
@@ -248,5 +255,68 @@ namespace custard {
         
     };
 
+    inline
+    void input_filters(boost::iostreams::filtering_istream& in,
+                       std::string inname)
+    {
+        if (boost::algorithm::iends_with(inname, ".gz")) {
+            in.push(boost::iostreams::gzip_decompressor());
+        }
+        else if (boost::algorithm::iends_with(inname, ".bz2")) {
+            in.push(boost::iostreams::bzip2_decompressor());
+        }
+        else if (boost::algorithm::iends_with(inname, ".tar")) {
+            in.push(custard::tar_reader());
+        }
+        else if (boost::algorithm::iends_with(inname, ".tar.gz")) {
+            in.push(custard::tar_reader());
+        }
+        else if (boost::algorithm::iends_with(inname, ".tar.bz2")) {
+            in.push(custard::tar_reader());
+        }
+        else {
+            return;
+        }
+        in.push(boost::iostreams::file_source(inname));
+    }
+
+    /// Parse outname and based complete the filter ostream.  If
+    /// parsing fails, nothing is added to "out".
+    inline
+    void output_filters(boost::iostreams::filtering_ostream& out,
+                        std::string outname)
+    {
+        /// future intentions:
+        // if (boost::algorithm::iends_with(outname, "/")) {
+        //     out.push(custard::dir_writer(outname));
+        //     return;
+        // }
+        // if (boost::algorithm::istarts_with(outname, "inproc://")) {
+        //     out.push(custard::zmq_writer(outname));
+        //     return;
+        // }
+
+        // try a file output
+        if (boost::algorithm::iends_with(outname, ".gz")) {
+            out.push(boost::iostreams::gzip_compressor());
+        }
+        else if (boost::algorithm::iends_with(outname, ".bz2")) {
+            out.push(boost::iostreams::bzip2_compressor());
+        }
+        else if (boost::algorithm::iends_with(outname, ".tar")) {
+            out.push(custard::tar_writer());
+        }
+        else if (boost::algorithm::iends_with(outname, ".tar.gz")) {
+            out.push(custard::tar_writer());
+        }
+        else if (boost::algorithm::iends_with(outname, ".tar.bz2")) {
+            out.push(custard::tar_writer());
+        }
+        else {
+            return;
+        }
+
+        out.push(boost::iostreams::file_sink(outname));
+    }
 }
 #endif
