@@ -18,7 +18,6 @@
 
 namespace custard {
 
-
     // This is a stateful filter which parses the stream for
     // [filename]\n[size-as-string]\n[file body of given size][filename]\n....
     class tar_writer : public boost::iostreams::multichar_output_filter {

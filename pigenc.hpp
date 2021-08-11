@@ -74,7 +74,7 @@ namespace pigenc {
             ss << comma << s;
             comma = ", ";
         }
-        ss << ")}\n";
+        ss << "), }";
         std::string dict = ss.str();
 
         int siz = 10 + dict.size();
@@ -87,9 +87,10 @@ namespace pigenc {
         ret.push_back( *(((char*)&hsize)+0) );
         ret.push_back( *(((char*)&hsize)+1) );
         ret += dict;
-        for (int ind=0; ind<pad; ++ind) {
+        for (int ind=0; ind<pad-1; ++ind) {
             ret.push_back(' ');
         }
+        ret.push_back('\n');
         return ret;
     }
 
