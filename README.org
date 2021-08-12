@@ -2,55 +2,115 @@
 
 * Overview
 
-*custard* provides two header-only libraries:
+*custard* provides support for ~tar~ file I/O streams either via
+~std::stream~ or through ~boost::iostreams~ input or output filters.
 
-- [[file:custard.hpp]] :: stand-alone, header-only C++ interface to
-  reading and writing tar streams via ~std::ostream~ (or derived)
+*custard* also provides *pigenc* which gives support for I/O streams in
+Python Numpy file codec.  This comes as a low-level stand-alone
+implementation (but requires [[https://github.com/nlohmann/json/][nlohmann/json]]) and a layer on top of that
+which provides serialization of ~Eigen::Array~ and ~std::vector~ like
+objects.
 
-- [[file:boost_custard.hpp]] :: ~boost::iostreams~ input filters ~tar_reader~ and
-  output filter ~tar_writer~.  This is header-only and depends on
-  ~custard.hpp~
+*custard* is provided as header-only libraries:
 
-The filters require the user to follow a simple streaming protocol
-which serializes to/from the stream, in order:
+- [[file:custard.hpp]] :: stream tar content via ~std::stream~ like objects
+  including tar header parsing and generating.  
 
-1. file name + ~'\n'~
-2. file size (as string) + ~'\n'~
-3. file body
+- [[file:custard_boost.hpp]] :: ~boost::iostreams~ input filters ~tar_reader~ and
+  output filter ~tar_writer~. 
 
-The file name and file size strings must end with a newline ~\n~
-character and the file body has no delimiter.
+- [[file:pigenc.hpp]] :: Numpy file format codec for ~std::stream~ like
+  objects including Numpy file header parsing and generating.
 
-Subsequent files may be streamed by repeating this pattern.  For
-examples see:
+- [[file:custard_pigenc.hpp]] :: bridge between C++ array'ish objects and
+  custard tar streams using pigenc codec.
 
-- [[file:test_boost_custard_write.cpp]] :: First argument is a tar file (~.tar~, ~.tar.gz~ or ~.tar.bz2~) to write and subsequent arguments give files to archive.
+* custard streams
 
-- [[file:test_boost_custard_read.cpp]] :: Single argument is a tar file (~.tar~, ~.tar.gz~ or ~.tar.bz2~) to read.  File names and sizes are printed and archive files are written.
+Using the boost support in C++, a *custard* "tar stream" is a simple
+serialization of a tar archive member file.  A trio of data must be
+streamed in order with newline ~\n~ delimiters:
 
-Additional tar metadata is set automatically by *custard* and not
-currently configurable.
+#+begin_example
+ [file name]\n[file size]\n[file body]....
+#+end_example
 
+The ~[file name]~ is free except that it may not include newlines.  The
+~[file size]~ is a string representation of the integer number of bytes
+in the ~[file body]~.
 
-* Also
+* Tests
 
-*custard* also includes 
+The *custard* repo includes a rudimentary Makefile to build and exercise
+some tests.  You will likely need to edit the variables at the top to
+conform to local environment.  It requires [[https://github.com/bats-core/bats-core][BATS]].
 
-- [[file:pigenc.hpp]] :: support for Python Numpy file codec
+These ~test_*.cpp~ files also serve as the reference documentation and
+examples of how to use *custard* and *pigenc*.
 
-Example and test:
+* Installation
 
-- [[file:test_pigenc.cpp]] :: run with no arguments, creates ~test_pigenc.npy~
+Currently, the intention is to copy required headers into other
+source.  This may be done piecemeal or, for example, the *custard* repo
+may be included as a subrepo:
 
-* tar + npy = 💕
+#+begin_example
+cd /path/to/my/source
+git subrepo clone git@github.com:brettviren/custard.git path/to/custard
+#+end_example
+
+See below for license info.
+
+* ~tar~ + ~.npy~ = 💕
+
+The initial motivation for this package was to persist arrays in
+Wire-Cell Toolkit C++ memory to files such that:
+
+- streaming :: the arrays may be streamed to file as the C++ job runs (no buffering-until-end).
+
+- variety :: support more than just array data and in particular structured (with JSON as the likely codec).
+
+- python :: easy read/write with Python standard library and Numpy (or other file-format specific).
+
+- light :: add no new, external dependencies but allowing any that may be easily "vendored".
+
+- compressed :: allow for stream compression, not requiring file closure.
+
+- append :: support appending to existing file.
+
+The available solutions were surveyed and failed either some or all of
+these requirements.
+
+[[https://github.com/rogersce/cnpy][rogersce/cnpy]] comes closest (and in fact is used by WCT now) but does
+not support *compressed*, *append* nor *variety* requirements.  It is very
+strong on *streaming* and *python* and is fairly *light*.  ~cnpy~ likely could
+be improved to add the missing requirements but after surveying the
+~zip~ file landscape, this work does not look fun.
+
+And so *custard* is formed leveraging the fact that both *tar* and Numpy
+file codec are relatively simple and we may leverage Boost for
+compression.  And, in fact, *custard* embraces ~boost::iostreams~ by
+providing an input and output "tar filter".
+
+However, Numpy in ~tar~ is a little awkward to use in Python due to an
+odd mis-feature of Python's ~tarfile~ module.  It not produces a "file
+like object" so one might think it compatible with ~numpy.load()~ but in
+fact it is not.  Gluing the two requires interjecting an ~io.BytesIO~.
 
 #+begin_src python
 import io, numpy, tarfile
 t = tarfile.open("npy.tar")
 a = io.BytesIO()
 a.write(t.extractfile('bar.npy').read())
+a.seek(0)
 arr = numpy.load(a)
 #+end_src
+
+* Names
+
+The name *custard* comes from the mashing of C++ and the ~ustar~ "magic"
+string in tar files.  The name *pigenc* is somehow a mash of "Python",
+"Numpy", "Eigen" and "encode".
 
 * License
 
@@ -58,6 +118,3 @@ arr = numpy.load(a)
 the file [[file:COPYING][COPYING]].  
 
 
-* Todo
-
-- [ ] proper build/test

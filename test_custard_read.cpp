@@ -25,7 +25,9 @@ int main(int argc, char* argv[])
         uint32_t usum = th.checksum();
         bool ok = usum == th.chksum();
 
-        std::cerr << "filename: " << th.name()
+        auto name = th.name();
+
+        std::cerr << "filename: " << name
                   << " size: " << siz
                   << " check: " << usum << "?" << ok
                   << " istar: " << th.is_ustar()
@@ -35,9 +37,12 @@ int main(int argc, char* argv[])
         auto got = tar.read_data(fstr, &buf[0], siz);
         if (got != siz) {
             std::cerr << "short read " << got << " < " << siz << std::endl;
+            return -1;
         }
-        std::cerr << buf << std::endl;
 
+        std::cerr << "Writing: " << name << std::endl;
+        std::ofstream out(name);
+        out.write(buf.data(), buf.size());
     }
     return 0;
 }

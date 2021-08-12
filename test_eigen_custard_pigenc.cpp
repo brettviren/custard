@@ -1,8 +1,10 @@
 #include <boost/iostreams/filtering_stream.hpp>
 
+#include "custard_boost.hpp"
 
-#include "eigen_custard_pigenc.hpp"
-#include "boost_custard.hpp"
+#include <Eigen/Core>
+#include "custard_pigenc.hpp"
+
 
 template<typename ArrayType>
 void test_one(boost::iostreams::filtering_ostream& out,
