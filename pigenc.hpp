@@ -69,10 +69,8 @@ namespace pigenc {
         ss << "{'descr': '" << desc << "', "
            << "'fortran_order': " << tf << ", "
            << "'shape': (";
-        std::string comma="";
         for (auto s : shape) {
-            ss << comma << s;
-            comma = ", ";
+            ss << s << ", ";
         }
         ss << "), }";
         std::string dict = ss.str();

@@ -58,7 +58,7 @@ namespace custard {
         std::vector<size_t> shape;
         shape.push_back(vec.size());
         const bool fortran_order = false;
-        const size_t nelem = shape[0]*shape[1];
+        const size_t nelem = shape[0];
 
         auto dt = pigenc::dtype<Scalar>();
         auto pyhead = pigenc::make_header(dt, shape, fortran_order);

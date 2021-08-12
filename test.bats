@@ -70,6 +70,25 @@ do_read () {
     do_read test_boost_custard_read
 }
 
+do_pydump () {
+    tar="$1" ; shift
+    npy="$1" ; shift
+    run python3 -c 'import io, numpy, tarfile; \
+tar="'$tar'"; \
+npy="'$npy'"; \
+t = tarfile.open(tar); \
+a = io.BytesIO(); \
+a.write(t.extractfile(npy).read()); \
+a.seek(0); \
+arr = numpy.load(a); \
+print(tar, npy); \
+print(arr.shape, arr.size, arr.dtype); \
+print(arr.flags); \
+print(arr)'
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
+
 @test "test_eigen_custard_pigenc" {
     do_prep test_eigen_custard_pigenc
 
@@ -81,23 +100,29 @@ do_read () {
     [ "$status" -eq 0 ]
     [ -s cus.tar ]
     
-    run python3 -c 'import io, numpy, tarfile; \
-t = tarfile.open("cus.tar"); \
-a = io.BytesIO()
-a.write(t.extractfile("test1.npy").read())
-a.seek(0)
-arr = numpy.load(a); \
-print(arr.shape, arr.size, arr.dtype); \
-print(arr.flags); \
-print(arr)'
-    echo "$output"
-    [ "$status" -eq 0 ]
+    do_pydump cus.tar test1.npy
     [ -n "$(echo $output | grep '(3, 4) 12 float32')" ]
     [ -n "$(echo $output | grep 'C_CONTIGUOUS : True')" ]
     [ -n "$(echo $output | grep 'F_CONTIGUOUS : False')" ]
     [ -n "$(echo $output | grep 'ALIGNED : True')" ]
 
+    do_pydump cus.tar test1_floats.npy
+    [ -n "$(echo $output | grep '(3,) 3 float64')" ]
+    [ -n "$(echo $output | grep 'C_CONTIGUOUS : True')" ]
+    [ -n "$(echo $output | grep 'F_CONTIGUOUS : True')" ]
+    [ -n "$(echo $output | grep 'ALIGNED : True')" ]
+
+    do_pydump cus.tar test1_ints.npy
+    [ -n "$(echo $output | grep '(3,) 3 int32')" ]
+    [ -n "$(echo $output | grep 'C_CONTIGUOUS : True')" ]
+    [ -n "$(echo $output | grep 'F_CONTIGUOUS : True')" ]
+    [ -n "$(echo $output | grep 'ALIGNED : True')" ]
+
+    #false
+
     date > okay
+
+
 }
 
 @test "test_pigenc" {
