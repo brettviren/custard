@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
         out << fname << "\n" << siz << "\n" << buf;
     }
 
-    out.flush();
+    out.pop();                  // remove the file to close.
     return 0;
 }
 

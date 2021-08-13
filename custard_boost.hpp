@@ -258,13 +258,7 @@ namespace custard {
     void input_filters(boost::iostreams::filtering_istream& in,
                        std::string inname)
     {
-        if (boost::algorithm::iends_with(inname, ".gz")) {
-            in.push(boost::iostreams::gzip_decompressor());
-        }
-        else if (boost::algorithm::iends_with(inname, ".bz2")) {
-            in.push(boost::iostreams::bzip2_decompressor());
-        }
-        else if (boost::algorithm::iends_with(inname, ".tar")) {
+        if (boost::algorithm::iends_with(inname, ".tar")) {
             in.push(custard::tar_reader());
         }
         else if (boost::algorithm::iends_with(inname, ".tar.gz")) {
@@ -273,9 +267,14 @@ namespace custard {
         else if (boost::algorithm::iends_with(inname, ".tar.bz2")) {
             in.push(custard::tar_reader());
         }
-        else {
-            return;
+
+        if (boost::algorithm::iends_with(inname, ".gz")) {
+            in.push(boost::iostreams::gzip_decompressor());
         }
+        else if (boost::algorithm::iends_with(inname, ".bz2")) {
+            in.push(boost::iostreams::bzip2_decompressor());
+        }
+
         in.push(boost::iostreams::file_source(inname));
     }
 
@@ -283,7 +282,8 @@ namespace custard {
     /// parsing fails, nothing is added to "out".
     inline
     void output_filters(boost::iostreams::filtering_ostream& out,
-                        std::string outname)
+                        std::string outname,
+                        int level = boost::iostreams::zlib::default_compression)
     {
         /// future intentions:
         // if (boost::algorithm::iends_with(outname, "/")) {
@@ -295,14 +295,9 @@ namespace custard {
         //     return;
         // }
 
-        // try a file output
-        if (boost::algorithm::iends_with(outname, ".gz")) {
-            out.push(boost::iostreams::gzip_compressor());
-        }
-        else if (boost::algorithm::iends_with(outname, ".bz2")) {
-            out.push(boost::iostreams::bzip2_compressor());
-        }
-        else if (boost::algorithm::iends_with(outname, ".tar")) {
+        
+        // Add tar writer if we see tar at the end.
+        if (boost::algorithm::iends_with(outname, ".tar")) {
             out.push(custard::tar_writer());
         }
         else if (boost::algorithm::iends_with(outname, ".tar.gz")) {
@@ -311,10 +306,18 @@ namespace custard {
         else if (boost::algorithm::iends_with(outname, ".tar.bz2")) {
             out.push(custard::tar_writer());
         }
-        else {
-            return;
+
+        // In addition, if compression is wanted, add the appropriate
+        // filter next.
+
+        if (boost::algorithm::iends_with(outname, ".gz")) {
+            out.push(boost::iostreams::gzip_compressor(level));
+        }
+        else if (boost::algorithm::iends_with(outname, ".bz2")) {
+            out.push(boost::iostreams::bzip2_compressor());
         }
 
+        // finally, we save to the actual file.
         out.push(boost::iostreams::file_sink(outname));
     }
 }

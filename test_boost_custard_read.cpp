@@ -17,6 +17,10 @@ int main(int argc, char* argv[])
     std::string filename(argv[1]);
     custard::input_filters(fstr, filename);
 
+    assert(fstr.size() > 1);
+
+    std::cerr << "filtering istream for "<<filename<<" has: " << fstr.size() << std::endl;
+
     while (true) {
         if (fstr.eof()) {
             std::cerr << "reached end of archive\n";
