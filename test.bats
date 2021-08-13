@@ -130,10 +130,10 @@ print(arr)'
 
     cd $outd
 
-    run $texe cus.tar
+    run $texe cus.npy
     echo "$output"
     [ "$status" -eq 0 ]
-    [ -s cus.tar ]
+    [ -s cus.npy ]
 
     date > okay
 
