@@ -16,7 +16,24 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 
+#include <boost/filesystem.hpp>
+
+// #include <iostream> // debug
+
 namespace custard {
+
+    inline
+    bool assuredir(const std::string& pathname)
+    {
+        boost::filesystem::path p(pathname);
+        if ( ! p.extension().empty() ) {
+            p = p.parent_path();
+        }
+        if (p.empty()) {
+            return false;
+        }
+        return boost::filesystem::create_directories(p);
+    }
 
     // This is a stateful filter which parses the stream for
     // [filename]\n[size-as-string]\n[file body of given size][filename]\n....
@@ -103,20 +120,24 @@ namespace custard {
         template<typename Sink>
         std::streamsize write(Sink& dest, const char* buf, std::streamsize bufsiz)
         {
+            // std::cerr << "WRITE in [" << std::this_thread::get_id() << "]: " << bufsiz << std::endl;
             std::streamsize consumed = 0; // number taken from buf
             const char* ptr = buf;
             while (consumed < bufsiz) {
                 std::streamsize left = bufsiz - consumed;
                 auto took = write_one(dest, ptr, left);
                 if (took < 0) {
+                    // std::cerr << "WRITE out [" << std::this_thread::get_id() << "]: " << took << std::endl;
                     return took;
                 }
                 if (!took) {
+                    // std::cerr << "WRITE out [" << std::this_thread::get_id() << "]: " << consumed << std::endl;
                     return consumed;
                 }
                 consumed += took;
                 ptr += took;
             }
+            // std::cerr << "WRITE out [" << std::this_thread::get_id() << "]: " << bufsiz << std::endl;
             return bufsiz;
         }
 
@@ -296,6 +317,8 @@ namespace custard {
         // }
 
         
+        assuredir(outname);
+
         // Add tar writer if we see tar at the end.
         if (boost::algorithm::iends_with(outname, ".tar")) {
             out.push(custard::tar_writer());
