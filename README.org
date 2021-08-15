@@ -1,6 +1,6 @@
 #+title: 🍮 custard
 #+EXPORT_FILE_NAME: index.html
-#+setupfile: http://brettviren.github.io/export/setup/theme-darksun-qqq.setup
+#+setupfile: other/setup-page.org
 
 * Overview
 
