@@ -2,109 +2,75 @@
 
 * Overview
 
-*custard* provides support for ~tar~ file I/O streams either via
-~std::stream~ or through ~boost::iostreams~ input or output filters.
+*custard* provides support for reading and writing data in ~tar~ format to
+C++ applications in the form of a few "single-file, header-only"
+libraries.  An application may include only those headers needed to
+provide desired functionality:
 
-*custard* also provides *pigenc* which gives support for I/O streams in
-Python Numpy file codec.  This comes as a low-level stand-alone
-implementation (but requires [[https://github.com/nlohmann/json/][nlohmann/json]]) and a layer on top of that
-which provides serialization of ~Eigen::Array~ and ~std::vector~ like
-objects.
+- ~custard.hpp~ :: core support for encoding and decoding ~tar~ archive
+  member headers through a ~custard::Header~ class.  The codec is via
+  class methods and not I/O is provided.  Applications that wish to
+  handle I/O may find this header useful on its own.
 
-*custard* is provided as header-only libraries:
+- ~custard_file.hpp~ :: adds to *core* support for simple I/O via
+  ~std::stream~ with the ~custard::File~ class.  Some details of ~tar~
+  format are exposed to the application code but this header is useful
+  for simple applications wanting only ~tar~ file support with no
+  additional dependencies.
 
-- [[file:custard.hpp]] :: stream tar content via ~std::stream~ like objects
-  including tar header parsing and generating.  
+- ~custard_stream.hpp~ :: adds to *core* support for serializing
+  ~custard::Header~ through the simple *custard stream codec* (described
+  below).  On its own, this library is not useful to an application
+  developer but provides base support for more useful libraries.
 
-- [[file:custard_boost.hpp]] :: ~boost::iostreams~ input filters ~tar_reader~ and
-  output filter ~tar_writer~. 
+- ~custard_boost.hpp~ :: adds *core* and *stream* support for
+  ~boost::iostreams~ in the form of input and output filters.  These
+  filters may work along with Boost's ~gzip~ and ~bzip2~ filters to add
+  compressed ~tar~ streams.  Through the use of *custard stream codec*,
+  most details of the ~tar~ format need not be exposed to the
+  application.
 
-- [[file:pigenc.hpp]] :: Numpy file format codec for ~std::stream~ like
-  objects including Numpy file header parsing and generating.
+*custard* also provides *pigenc* (still under development and may be
+broken out).  It provides this functionality:
 
-- [[file:custard_pigenc.hpp]] :: bridge between C++ array'ish objects and
-  custard tar streams using pigenc codec.
+- ~pigenc.hpp~ :: provides a codec compatible with Numpy ~.npy~ file
+  format requiring minimal dependencies (~nlohmann::json~).
 
-* custard streams
+- ~pigenc_stream.hpp~ :: adds to ~pigenc.hpp~ the streaming of C++
+  numerical collection types such as ~Eigen::Array~ and ~std::vector~
 
-Using the boost support in C++, a *custard* "tar stream" is a simple
-serialization of a tar archive member file.  A trio of data must be
-streamed in order with newline ~\n~ delimiters:
+* TODO
 
-#+begin_example
- [file name]\n[file size]\n[file body]....
-#+end_example
+This package is still under major development
 
-The ~[file name]~ is free except that it may not include newlines.  The
-~[file size]~ is a string representation of the integer number of bytes
-in the ~[file body]~.
-
-* Tests
-
-The *custard* repo includes a rudimentary Makefile to build and exercise
-some tests.  You will likely need to edit the variables at the top to
-conform to local environment.  It requires [[https://github.com/bats-core/bats-core][BATS]].
-
-These ~test_*.cpp~ files also serve as the reference documentation and
-examples of how to use *custard* and *pigenc*.
+- [ ] version strings
+- [ ] factor *pigenc* to allow use w/ or w/out *custard*
+- [ ] real installation (pkg-config, cmake)
+- [ ] copying info in each file
 
 * Installation
 
-Currently, the intention is to copy required headers into other
-source.  This may be done piecemeal or, for example, the *custard* repo
-may be included as a subrepo:
-
-#+begin_example
-cd /path/to/my/source
-git subrepo clone git@github.com:brettviren/custard.git path/to/custard
-#+end_example
+Currently, no special installation method is provided.  A developer
+may, for example, copy the desired headers into their source.  
 
 See below for license info.
 
-* ~tar~ + ~.npy~ = 💕
+* Testing and examples
 
-The initial motivation for this package was to persist arrays in
-Wire-Cell Toolkit C++ memory to files such that:
+The package provides a number of ~test_*.cpp~ program source files which
+test proper function and serve as an example.  They can be built and
+exercised by typing:
 
-- streaming :: the arrays may be streamed to file as the C++ job runs (no buffering-until-end).
+#+begin_example
+  $ make
+#+end_example
 
-- variety :: support more than just array data and in particular structured (with JSON as the likely codec).
+The tests may be run separate from building with:
 
-- python :: easy read/write with Python standard library and Numpy (or other file-format specific).
+#+begin_example
+  $ bats test.bats
+#+end_example
 
-- light :: add no new, external dependencies but allowing any that may be easily "vendored".
-
-- compressed :: allow for stream compression, not requiring file closure.
-
-- append :: support appending to existing file.
-
-The available solutions were surveyed and failed either some or all of
-these requirements.
-
-[[https://github.com/rogersce/cnpy][rogersce/cnpy]] comes closest (and in fact is used by WCT now) but does
-not support *compressed*, *append* nor *variety* requirements.  It is very
-strong on *streaming* and *python* and is fairly *light*.  ~cnpy~ likely could
-be improved to add the missing requirements but after surveying the
-~zip~ file landscape, this work does not look fun.
-
-And so *custard* is formed leveraging the fact that both *tar* and Numpy
-file codec are relatively simple and we may leverage Boost for
-compression.  And, in fact, *custard* embraces ~boost::iostreams~ by
-providing an input and output "tar filter".
-
-However, Numpy in ~tar~ is a little awkward to use in Python due to an
-odd mis-feature of Python's ~tarfile~ module.  It not produces a "file
-like object" so one might think it compatible with ~numpy.load()~ but in
-fact it is not.  Gluing the two requires interjecting an ~io.BytesIO~.
-
-#+begin_src python
-import io, numpy, tarfile
-t = tarfile.open("npy.tar")
-a = io.BytesIO()
-a.write(t.extractfile('bar.npy').read())
-a.seek(0)
-arr = numpy.load(a)
-#+end_src
 
 * Names
 
