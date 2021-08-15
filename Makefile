@@ -9,9 +9,12 @@ testsrc = $(wildcard test_*.cpp)
 testexe = $(patsubst test_%.cpp,bin/test_%, $(testsrc))
 tstflag = $(patsubst test_%.cpp,test/test_%/okay, $(testsrc))
 
+include $(testsrc:.cpp=.d)
+
 all: $(testexe) $(tstflag)
 
-bin/test_%: test_%.cpp $(wildcard *.hpp)
+
+bin/test_%: test_%.cpp 
 	mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $< -lboost_iostreams -lboost_filesystem
 
@@ -20,3 +23,9 @@ test/%/okay: bin/%
 
 clean:
 	rm -rf test bin
+
+%.d: %.cpp
+	@set -e; rm -f $@; \
+	$(CXX) -M $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,bin/\1 $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$

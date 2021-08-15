@@ -5,7 +5,7 @@
 #ifndef pigenc_hpp
 #define pigenc_hpp
 
-#include <iostream>
+#include <iostream>             // testing
 #include <istream>
 #include <ostream>
 #include <string>
@@ -105,6 +105,18 @@ namespace pigenc {
     template<> std::string dtype<float>()    { return "<f4"; }
     template<> std::string dtype<double>()   { return "<f8"; }
 
+    // This assumes string like "...NN" where NN is number of bytes.
+    size_t dtype_size(std::string dt)
+    {
+        while (dt.size() and (dt[0]-'0' < 0 or dt[0]-'0' > 9)) {
+            dt.erase(dt.begin());
+        }
+        if (dt.empty()) {
+            return 0;
+        }
+        return std::stol(dt);
+    }
+
     // /// Write simple, raw array of elements type Type
     template<typename Type>
     std::ostream& write_data(std::ostream& os,
@@ -122,6 +134,132 @@ namespace pigenc {
         return os;
     }
         
+
+    /// Represent the npy header for a simple array (not structured).
+    class Header {
+        // String rep of Python dictionary describing the array
+        std::string descr_{""};
+
+        // Array dimension sizes
+        std::vector<size_t> shape_{};
+
+        // storage order
+        bool fortran_order_{false};
+
+        // derived values:
+
+        std::string header_string_{""};
+
+      public:
+
+        // Set the header values given C++ element type
+        template<typename Type>
+        void set(const std::vector<size_t>& shape,
+                 bool fortran_order=false)
+        {
+            shape_ = shape;
+            fortran_order_ = fortran_order;
+            descr_ = dtype<Type>();
+            update();
+        }
+
+        // Set the header given descr as string
+        void set(const std::vector<size_t>& shape,
+                 const std::string& descr,
+                 bool fortran_order=false)
+        {
+            shape_ = shape;
+            fortran_order_ = fortran_order;
+            descr_ = descr;
+            update();
+        }
+
+        size_t type_size() const {
+            // note, only simple arrays have descr as dtype
+            return dtype_size(descr_);
+        }
+
+        // Number of elements in the array
+        size_t array_size() const {
+            size_t size = 1;
+            for (auto s: shape_) {
+                size *= s;
+            }
+            return size;
+        }
+        
+        // The size of the array part in bytes.  
+        size_t data_size() const {
+            return type_size() * array_size();
+        }
+
+        size_t header_size() const {
+            return str().size();
+        }
+
+        // Size of the entire file
+        size_t file_size() const {
+            return header_size() + data_size();
+        }
+
+        // Update derived values
+        void update() {
+            std::string tf = fortran_order_ ? "True" : "False";
+            std::stringstream ss;
+            ss << "{'descr': '" << descr_ << "', "
+               << "'fortran_order': " << tf << ", "
+               << "'shape': (";
+            for (auto s : shape_) {
+                ss << s << ", ";
+            }
+            ss << "), }";
+            std::string dict = ss.str();
+
+            int siz = 10 + dict.size();
+            int pad = 64 - siz%64;
+            uint16_t hlen = pad + siz - 10;
+
+            std::string ret = "\x93NUMPY";
+            ret.push_back( '\x01' );
+            ret.push_back( '\x00' );
+            ret.push_back( *(((char*)&hlen)+0) );
+            ret.push_back( *(((char*)&hlen)+1) );
+            ret += dict;
+            for (int ind=0; ind<pad-1; ++ind) {
+                ret.push_back(' ');
+            }
+            ret.push_back('\n');
+            header_string_ = ret;
+            assert(hlen+10 == str().size());
+        }
+
+        std::string str() const {
+            return header_string_;
+        }
+
+        // Read self from istream
+        std::istream& read(std::istream& si)
+        {
+            auto dat = read_header(si);
+            descr_ = dat["descr"];
+            fortran_order_ = dat["fortran_order"];
+            shape_.clear();
+            for (auto s : dat["shape"]) {
+                size_t siz = s;
+                shape_.push_back(siz);
+            }
+            update();
+            return si;
+        }
+
+        std::ostream& write(std::ostream& so)
+        {
+            so.write(header_string_.data(), header_string_.size());
+            return so;
+        }
+
+    };
+
 
     // template<typename Array>
     // std::ostream& write(std::ostream& so, const Array& array)

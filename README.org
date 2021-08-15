@@ -1,4 +1,6 @@
 #+title: 🍮 custard
+#+EXPORT_FILE_NAME: index.html
+#+setupfile: http://brettviren.github.io/export/setup/theme-darksun-qqq.setup
 
 * Overview
 
@@ -7,23 +9,23 @@ C++ applications in the form of a few "single-file, header-only"
 libraries.  An application may include only those headers needed to
 provide desired functionality:
 
-- ~custard.hpp~ :: core support for encoding and decoding ~tar~ archive
+- [[file:custard.hpp][~custard.hpp~]] :: core support for encoding and decoding ~tar~ archive
   member headers through a ~custard::Header~ class.  The codec is via
   class methods and not I/O is provided.  Applications that wish to
   handle I/O may find this header useful on its own.
 
-- ~custard_file.hpp~ :: adds to *core* support for simple I/O via
+- [[file:custard_file.hpp][~custard_file.hpp~]] :: adds to *core* support for simple I/O via
   ~std::stream~ with the ~custard::File~ class.  Some details of ~tar~
   format are exposed to the application code but this header is useful
   for simple applications wanting only ~tar~ file support with no
   additional dependencies.
 
-- ~custard_stream.hpp~ :: adds to *core* support for serializing
+- [[file:custard_stream.hpp][~custard_stream.hpp~]] :: adds to *core* support for serializing
   ~custard::Header~ through the simple *custard stream codec* (described
   below).  On its own, this library is not useful to an application
   developer but provides base support for more useful libraries.
 
-- ~custard_boost.hpp~ :: adds *core* and *stream* support for
+- [[file:custard_boost.hpp][~custard_boost.hpp~]] :: adds *core* and *stream* support for
   ~boost::iostreams~ in the form of input and output filters.  These
   filters may work along with Boost's ~gzip~ and ~bzip2~ filters to add
   compressed ~tar~ streams.  Through the use of *custard stream codec*,
@@ -33,10 +35,10 @@ provide desired functionality:
 *custard* also provides *pigenc* (still under development and may be
 broken out).  It provides this functionality:
 
-- ~pigenc.hpp~ :: provides a codec compatible with Numpy ~.npy~ file
+- [[file:pigenc.hpp][~pigenc.hpp~]] :: provides a codec compatible with Numpy ~.npy~ file
   format requiring minimal dependencies (~nlohmann::json~).
 
-- ~pigenc_stream.hpp~ :: adds to ~pigenc.hpp~ the streaming of C++
+- [[file:pigenc_stream.hpp][~pigenc_stream.hpp~]] :: adds to ~pigenc.hpp~ the streaming of C++
   numerical collection types such as ~Eigen::Array~ and ~std::vector~
 
 * TODO

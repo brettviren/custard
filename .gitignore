@@ -10,3 +10,7 @@ test_boost_custard_write
 diffit
 bin
 test
+*.d
+junk*
+cut*
+*.npy
