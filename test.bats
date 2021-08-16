@@ -15,14 +15,16 @@ do_prep () {
 # many tests have same write pattern: $text foo.tar file ...
 do_write () {
     name="$1" ; shift
-    comp="$1"                   # if compression testing
+    comp="$1" ; shift
+    ext="${1:-hpp}"             # foder file type
+
     do_prep $name write_$comp
 
-    cp *.hpp $outd/
+    cp *.${ext} $outd/
     cd $outd
     mkdir -p cus gnu
 
-    run $texe cus.tar *.hpp
+    run $texe cus.tar *.${ext}
     echo "$output"
     [ "$status" -eq 0 ]
     [ -s cus.tar ]
@@ -32,13 +34,13 @@ do_write () {
     # check we can untar and get back original files
     tar -C cus -xvf cus.tar
 
-    for one in *.hpp
+    for one in *.${ext}
     do
         diff -u $one cus/$one
     done
 
     # check we can make nearly identical tar file with GNU
-    tar -b2 -cf gnu-full.tar *.hpp
+    tar -b2 -cf gnu-full.tar *.${ext}
     # our tar files do not pad as much GNU
     dd if=gnu-full.tar of=gnu.tar bs=1 count=$(stat -c %s cus.tar)
 
@@ -46,12 +48,12 @@ do_write () {
     od -a gnu.tar > gnu.od
     diff -u cus.od gnu.od 
 
-    if [ -z "$comp" ] ; then
+    if [ "$comp" = "no" ] ; then
         return
     fi
 
     # now check gzip compression.
-    run $texe   cus.tar.gz *.hpp
+    run $texe   cus.tar.gz *.${ext}
     echo "$output"
     [ "$status" -eq 0 ]
     [ -s cus.tar.gz ]
@@ -60,7 +62,7 @@ do_write () {
     diff -u cus.od cus2.od 
 
     # now check bzip2 compression.
-    run $texe   cus.tar.bz2 *.hpp
+    run $texe   cus.tar.bz2 *.${ext}
     echo "$output"
     [ "$status" -eq 0 ]
     [ -s cus.tar.bz2 ]
@@ -71,15 +73,17 @@ do_write () {
     date > okay
 }
 
+
 do_read () {
     name="$1" ; shift
-    comp="$1"
+    comp="$1" ; shift
+    ext="${1:-hpp}"             # fodder extension
     do_prep $name read_$comp
 
-    tar -cf $outd/gnu.tar *.hpp 
-    if [ -n "$comp" ] ; then
-        tar -czf $outd/gnu.tar.gz *.hpp 
-        tar -cjf $outd/gnu.tar.bz2 *.hpp
+    tar -cf $outd/gnu.tar *.${ext}
+    if [ "$comp" = "yes" ] ; then
+        tar -czf $outd/gnu.tar.gz *.${ext}
+        tar -cjf $outd/gnu.tar.bz2 *.${ext}
     fi
 
     cd $outd/
@@ -87,7 +91,7 @@ do_read () {
     echo $texe
 
     tars=(gnu.tar)
-    if [ -n "$comp" ] ; then
+    if [ "$comp" = "yes" ] ; then
         tars=(gnu.tar gnu.tar.bz2 gnu.tar.gz)
     fi
 
@@ -95,14 +99,13 @@ do_read () {
     for one in ${tars[*]}
     do
         echo $one
-        rm -f *.hpp
+        rm -f *.${ext}
         pwd
         echo $texe $one
         run $texe $one
         echo "$output"
         [ "$status" -eq 0 ]
-        [ -s custard.hpp ]
-        for n in *.hpp
+        for n in *.${ext}
         do
             ls -l $n ../../$n
             md5sum $n ../../$n
@@ -113,17 +116,26 @@ do_read () {
 }
 
 @test "test_custard write" {
-    do_write test_custard
+    do_write test_custard no hpp
 }
 
 @test "test_custard read" {
-    do_read test_custard
+    do_read test_custard no hpp
 }
 
 @test "test_custard_boost write" {
-    do_write test_custard_boost comp
+    do_write test_custard_boost yes hpp
 }
 
 @test "test_custard_boost read" {
-    do_read test_custard_boost comp
+    do_read test_custard_boost yes hpp
+}
+
+
+@test "test_custard_boost_pigenc_eigen write" {
+    do_write_py test_custard_boost_pigenc_eigen comp
+}
+
+@test "test_custard_boost_pigenc_eigen read" {
+    do_read_py test_custard_boost_pigenc_eigen comp
 }

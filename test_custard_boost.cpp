@@ -18,7 +18,7 @@ int unpack(std::string archive)
     while (true) {
         if (si.eof()) {
             std::cerr << "premature end of archive\n";
-            // return -1;
+            return -1;
         }
         if (!si) {
             std::cerr << "ERROR stream broken: " << strerror(errno) << std::endl;

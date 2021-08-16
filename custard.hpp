@@ -267,6 +267,32 @@ namespace custard {
             return 512UL - size()%512UL;
         }
 
+        /// Read self from stream as tar header (not custard stream!)
+        std::istream& read(std::istream& si) {
+            return si.read(&name_[0], 512);
+        }
+
+        /// Advance the stream beyond the padding at the end of file
+        /// data.
+        std::istream& read_pad(std::istream& si) {
+            si.seekg(padding(), si.cur);
+            return si;
+        }
+
+        /// Write self to stream as tar header (not custard stream!)
+        std::ostream& write(std::ostream& so) {
+            return so.write(&name_[0], 512);
+        }
+            
+        /// Write the padding that goes after file data
+        std::ostream& write_pad(std::ostream& so)
+        {
+            std::string pad(padding(), 0);
+            so.write(&pad[0], pad.size());
+            return so;
+        }
+
+
     };
 
 }
