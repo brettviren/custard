@@ -3,7 +3,7 @@
 #include "custard_boost.hpp"
 
 #include <Eigen/Core>
-#include "pigenc_stream.hpp"
+#include "custard_pigenc.hpp"
 
 
 template<typename ArrayType>

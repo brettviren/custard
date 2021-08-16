@@ -38,14 +38,18 @@ broken out).  It provides this functionality:
 - [[file:pigenc.hpp][~pigenc.hpp~]] :: provides a codec compatible with Numpy ~.npy~ file
   format requiring minimal dependencies (~nlohmann::json~).
 
-- [[file:pigenc_stream.hpp][~pigenc_stream.hpp~]] :: adds to ~pigenc.hpp~ the streaming of C++
-  numerical collection types such as ~Eigen::Array~ and ~std::vector~
+- [[file:custard_pigenc.hpp][~custard_pigenc.hpp~]] :: adds to *stream* and *pigenc* support for
+  serializing C++ numerical collection types such as ~Eigen::Array~ and
+  ~std::vector~
 
 * TODO
 
-This package is still under major development
+This package is still under major development.  Some things still
+needed:
 
 - [ ] version strings
+- [ ] debug/verbose logging
+- [ ] document custard stream codec
 - [ ] factor *pigenc* to allow use w/ or w/out *custard*
 - [ ] real installation (pkg-config, cmake)
 - [ ] copying info in each file

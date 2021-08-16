@@ -163,7 +163,7 @@ namespace custard {
         }
         size_t mode() const
         {
-            return decode_octal(size_, 8);
+            return decode_octal(mode_, 8);
         }
 
         void set_mtime(size_t mtime)
@@ -172,7 +172,7 @@ namespace custard {
         }
         size_t mtime() const
         {
-            return decode_octal(size_, 12);
+            return decode_octal(mtime_, 12);
         }
 
         void set_uid(size_t id)
@@ -181,7 +181,7 @@ namespace custard {
         }
         size_t uid() const
         {
-            return decode_octal(size_, 8);
+            return decode_octal(uid_, 8);
         }
 
         void set_gid(size_t id)
@@ -190,7 +190,7 @@ namespace custard {
         }
         size_t gid() const
         {
-            return decode_octal(size_, 8);
+            return decode_octal(gid_, 8);
         }
 
         void set_uname(const std::string& uname)
@@ -247,6 +247,10 @@ namespace custard {
             encode_chksum(chksum_, usum);
         }
 
+        void gensum() {
+            set_chksum(checksum());
+        }
+
         bool is_ustar() const {
             return memcmp("ustar", magic_, 5) == 0;
         }
@@ -258,7 +262,13 @@ namespace custard {
             return &name_[0];
         }
 
+        // the amount of padding expected at end of file.
+        size_t padding() const {
+            return 512UL - size()%512UL;
+        }
+
     };
 
 }
 #endif
+

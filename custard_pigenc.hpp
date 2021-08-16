@@ -1,12 +1,13 @@
-#ifndef eigen_custard_pigenc_hpp
-#define eigen_custard_pigenc_hpp
+#ifndef custard_pigenc_hpp
+#define custard_pigenc_hpp
 
+#include "custard_stream.hpp"
 #include "pigenc.hpp"
 
 namespace custard {
 
 #ifdef EIGEN_CORE_H
-    /// Sink an eigen type array as Numpy data into a tar stream.
+    /// Sink an eigen type array as Numpy data into a custard stream.
     ///
     /// The arname is the file name to give in the tar archive stream.
     /// Typically it should end in .npy.
@@ -15,33 +16,28 @@ namespace custard {
     /// providing eigen-style array types before #include'ing this
     /// header in order to use this function.  
     template<typename ArrayType>
-    std::ostream& eigen_sink(std::ostream& tar_stream,
+    std::ostream& eigen_sink(std::ostream& so,
                              const std::string& arname,
                              const ArrayType& array)
     {
         using Scalar = typename ArrayType::Scalar;
 
+        pigenc::Header pig;
+
         std::vector<size_t> shape;
         shape.push_back(array.rows());
         shape.push_back(array.cols());
-        const size_t nelem = shape[0]*shape[1];
-
         const bool fortran_order = !(ArrayType::Flags & Eigen::RowMajorBit);
 
-        // need to divine dtype and shape (and size)
-        auto dt = pigenc::dtype<Scalar>();
-        auto pyhead = pigenc::make_header(dt, shape, fortran_order);
+        pig.set<Scalar>(shape, fortran_order);
 
-        const Scalar* array_data = array.data();
-        const size_t array_size = nelem*sizeof(Scalar);
-
-        const size_t tar_size = pyhead.size() + array_size;
-
-        tar_stream << arname << "\n" << tar_size << "\n";
-        tar_stream.write(pyhead.data(), pyhead.size());
-        tar_stream.write((char*)array_data, array_size);
-
-        return tar_stream;
+        // first tar
+        custard::write(so, arname, pig.file_size());
+        // then pig
+        pig.write(so);
+        // then data
+        so.write((char*)array.data(), pig.data_size());
+        return so;
     }
 #endif // EIGEN_CORE_H
 

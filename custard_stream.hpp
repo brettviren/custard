@@ -20,12 +20,32 @@
 
 namespace custard {
 
+    // inline
+    // std::istream& get_line(std::istream& si, std::string& s, char delim='\n')
+    // {
+    //     while (true) {
+    //         char c{0};
+    //         si.get(c);
+    //         if (!si or c == delim) {
+    //             break;
+    //         }
+    //         s.push_back(c);
+    //         std::cerr << "get_line: |" << s << "|\n";
+    //     }
+    //     return si;
+    // }
+
+    inline
     std::string get_string(std::istream& si, char delim=' ')
     {
         std::string s;
         while (true) {
             std::getline(si, s, delim);
-            if (!si) return ""; 
+            //get_line(si, s, delim);
+            if (!si) {
+                // std::cerr << "get_string broke stream (delim=\""<<delim<<"\")\n";
+                return "";
+            }
             if (s.empty()) {
                 continue;
             }
@@ -34,10 +54,15 @@ namespace custard {
         return s;
     }
 
+    inline
     size_t get_number(std::istream& si)
     {
         std::string nstr = get_string(si, '\n');
-        if (!si) return 0;
+        if (!si) {
+            // std::cerr << "get_number broke stream\n";
+            return 0;
+        }
+
         return std::stol(nstr);
     }
 
@@ -46,14 +71,23 @@ namespace custard {
     // Caller MUST continue to read exactly the number of bytes
     // indicated by head.size() in order to position stream at the
     // start of the next archive member.
+    inline
     std::istream& read(std::istream& si, Header& head)
     {
+        head.clear();
+        head.init();
         while (true) {
             std::string key = get_string(si, ' ');
-            if (!si) return si;
-
+            if (!si) {
+                // std::cerr << "custard::read(header) error \""
+                //           << strerror(errno) 
+                //           << "\" in reading key " << key << "\n";
+                return si;
+            }
+            // std::cerr << "custard::read(header) input stream at key |"<<key<<"|\n";
             if (key == "name") {
                 head.set_name(get_string(si, '\n'));
+                // std::cerr << "\t|" << head.name() << "|\n";
             }
             else if (key == "mode") {
                 head.set_mode(get_number(si));
@@ -64,7 +98,7 @@ namespace custard {
             else if (key == "uid") {
                 head.set_uid(get_number(si));
             }
-            else if (key == "git") {
+            else if (key == "gid") {
                 head.set_gid(get_number(si));
             }
             else if (key == "uname") {
@@ -75,23 +109,33 @@ namespace custard {
             }
             else if (key == "body") {
                 head.set_size(get_number(si));
-                head.set_chksum(head.checksum());
+                head.gensum();
+                // std::cerr << "custard::read(header) got body size "
+                //           << head.size() << " " << head.chksum() << " " << head.checksum() << std::endl;
                 return si;
             }
             if (!si) {
+                // std::cerr << "custard::read(header) input stream is bad: " << strerror(errno) << std::endl;
                 return si;
             }
-            break;
         }
         return si;        
     }
     // The minimum header read.
+    inline
     std::istream& read(std::istream& si,
-                      std::string& filename, size_t& filesize)
+                       std::string& filename, size_t& filesize)
     {
+        if (!si) {
+            // std::cerr << "custard::read given bad stream\n";
+            return si;
+        }
         custard::Header head;
         read(si, head);
-        if (!si) return si;
+        if (!si) {
+            // std::cerr << "custard::read head broke stream\n";
+            return si;
+        }
         filename = head.name();
         filesize = head.size();
         return si;
@@ -102,6 +146,7 @@ namespace custard {
     // Stream header to ostream, leaving stream ready to write member
     // body data.  The caller MUST write additional number of bytes as
     // indicated by head.size() in order to avoid a corrupted stream.
+    inline
     std::ostream& write(std::ostream& so, const Header& head)
     {
         so << "name " << head.name() << "\n"
@@ -117,6 +162,7 @@ namespace custard {
     }
 
     // The minimum header write:
+    inline
     std::ostream& write(std::ostream& so,
                         const std::string& filename, size_t filesize)
     {
@@ -124,6 +170,7 @@ namespace custard {
            << "body " << filesize << "\n";
         return so;
     }
+
 
 }
 

@@ -260,12 +260,7 @@ namespace pigenc {
 
     };
 
-
-    // template<typename Array>
-    // std::ostream& write(std::ostream& so, const Array& array)
-    // {
-    // }
-
 }
 
 #endif
+

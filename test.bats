@@ -1,27 +1,37 @@
 #!/usr/bin/env bats
 
+# make a working directory for the test exec and set some vars
 do_prep () {
     name="$1" ; shift    
+    extra="$1"
     texe=$(realpath bin/$name)    
-    outd=test/$name
+    outd=test/${name}_${extra}
     rm -rf $outd
     mkdir -p $outd
+    echo $texe
+    echo $outd
 }
+
+# many tests have same write pattern: $text foo.tar file ...
 do_write () {
     name="$1" ; shift
-    do_prep $name
+    comp="$1"                   # if compression testing
+    do_prep $name write_$comp
 
     cp *.hpp $outd/
     cd $outd
     mkdir -p cus gnu
 
-    run $texe   cus.tar *.hpp
+    run $texe cus.tar *.hpp
     echo "$output"
     [ "$status" -eq 0 ]
     [ -s cus.tar ]
+    ls -lR
+    [ $(stat -c %s cus.tar) -gt 1024 ]
 
     # check we can untar and get back original files
-    tar -C cus -xf cus.tar
+    tar -C cus -xvf cus.tar
+
     for one in *.hpp
     do
         diff -u $one cus/$one
@@ -35,6 +45,10 @@ do_write () {
     od -a cus.tar > cus.od
     od -a gnu.tar > gnu.od
     diff -u cus.od gnu.od 
+
+    if [ -z "$comp" ] ; then
+        return
+    fi
 
     # now check gzip compression.
     run $texe   cus.tar.gz *.hpp
@@ -59,129 +73,57 @@ do_write () {
 
 do_read () {
     name="$1" ; shift
-    do_prep $name
+    comp="$1"
+    do_prep $name read_$comp
 
     tar -cf $outd/gnu.tar *.hpp 
-    tar -czf $outd/gnu.tar.gz *.hpp 
-    tar -cjf $outd/gnu.tar.bz2 *.hpp 
+    if [ -n "$comp" ] ; then
+        tar -czf $outd/gnu.tar.gz *.hpp 
+        tar -cjf $outd/gnu.tar.bz2 *.hpp
+    fi
 
     cd $outd/
+    pwd
+    echo $texe
 
-    for one in gnu.tar gnu.tar.gz gnu.tar.bz2
+    tars=(gnu.tar)
+    if [ -n "$comp" ] ; then
+        tars=(gnu.tar gnu.tar.bz2 gnu.tar.gz)
+    fi
+
+
+    for one in ${tars[*]}
     do
+        echo $one
         rm -f *.hpp
+        pwd
+        echo $texe $one
         run $texe $one
         echo "$output"
         [ "$status" -eq 0 ]
         [ -s custard.hpp ]
         for n in *.hpp
         do
-            diff $n ../../$n
+            ls -l $n ../../$n
+            md5sum $n ../../$n
+            diff -u $n ../../$n
         done
     done
     date > okay
 }
 
-@test "test_custard_write" {
-    do_write test_custard_write
+@test "test_custard write" {
+    do_write test_custard
 }
 
-@test "test_custard_read" {
-    do_prep test_custard_read
-
-    tar -cf $outd/gnu.tar *.hpp 
-
-    cd $outd/
-
-    for one in gnu.tar
-    do
-        rm -f *.hpp
-        run $texe $one
-        echo "$output"
-        [ "$status" -eq 0 ]
-        [ -s custard.hpp ]
-        for n in *.hpp
-        do
-            diff $n ../../$n
-        done
-    done
-    date > okay
-
+@test "test_custard read" {
+    do_read test_custard
 }
 
-@test "test_boost_custard_write" {
-    do_write test_boost_custard_write
+@test "test_custard_boost write" {
+    do_write test_custard_boost comp
 }
 
-@test "test_boost_custard_read" {
-    do_read test_boost_custard_read
-}
-
-do_pydump () {
-    tar="$1" ; shift
-    npy="$1" ; shift
-    run python3 -c 'import io, numpy, tarfile; \
-tar="'$tar'"; \
-npy="'$npy'"; \
-t = tarfile.open(tar); \
-a = io.BytesIO(); \
-a.write(t.extractfile(npy).read()); \
-a.seek(0); \
-arr = numpy.load(a); \
-print(tar, npy); \
-print(arr.shape, arr.size, arr.dtype); \
-print(arr.flags); \
-print(arr)'
-    echo "$output"
-    [ "$status" -eq 0 ]
-}
-
-@test "test_eigen_custard_pigenc" {
-    do_prep test_eigen_custard_pigenc
-
-    eigchk=$(realpath eigchk.py)
-    cd $outd
-
-    run $texe cus.tar
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ -s cus.tar ]
-    
-    do_pydump cus.tar test1.npy
-    [ -n "$(echo $output | grep '(3, 4) 12 float32')" ]
-    [ -n "$(echo $output | grep 'C_CONTIGUOUS : True')" ]
-    [ -n "$(echo $output | grep 'F_CONTIGUOUS : False')" ]
-    [ -n "$(echo $output | grep 'ALIGNED : True')" ]
-
-    do_pydump cus.tar test1_floats.npy
-    [ -n "$(echo $output | grep '(3,) 3 float64')" ]
-    [ -n "$(echo $output | grep 'C_CONTIGUOUS : True')" ]
-    [ -n "$(echo $output | grep 'F_CONTIGUOUS : True')" ]
-    [ -n "$(echo $output | grep 'ALIGNED : True')" ]
-
-    do_pydump cus.tar test1_ints.npy
-    [ -n "$(echo $output | grep '(3,) 3 int32')" ]
-    [ -n "$(echo $output | grep 'C_CONTIGUOUS : True')" ]
-    [ -n "$(echo $output | grep 'F_CONTIGUOUS : True')" ]
-    [ -n "$(echo $output | grep 'ALIGNED : True')" ]
-
-    #false
-
-    date > okay
-
-
-}
-
-@test "test_pigenc" {
-    do_prep test_pigenc
-
-    cd $outd
-
-    run $texe cus.npy
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ -s cus.npy ]
-
-    date > okay
-
+@test "test_custard_boost read" {
+    do_read test_custard_boost comp
 }
