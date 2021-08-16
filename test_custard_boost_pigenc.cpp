@@ -13,37 +13,50 @@
 
 #include "custard_boost.hpp"
 #include "pigenc_eigen.hpp"
+#include "pigenc_stl.hpp"
 
 template<typename Scalar>
-bool ert(const pigenc::File& inpig, pigenc::File& outpig)
+bool rt(const pigenc::File& inpig, pigenc::File& outpig)
 {
-    using ArrayType = Eigen::Array<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-    ArrayType array;
-    bool ok = pigenc::eigen::load<ArrayType>(inpig, array);
+    if (inpig.header().shape().size() == 2) {
+        using ArrayType = Eigen::Array<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+        ArrayType array;
+        bool ok = pigenc::eigen::load<ArrayType>(inpig, array);
+        if (!ok) {
+            std::cerr << "fail to load array from " << inpig.header().dtype() << "\n";
+            return false;
+        }
+        pigenc::eigen::dump<ArrayType>(outpig, array);
+        return true;
+    }
+    // 1D, test with std::vector
+    using VectorType = std::vector<Scalar>;
+    VectorType vec;
+    bool ok = pigenc::stl::load<VectorType>(inpig, vec);
     if (!ok) {
-        std::cerr << "fail to load array from " << inpig.header().dtype() << "\n";
+        std::cerr << "fail to load vector from " << inpig.header().dtype() << "\n";
         return false;
     }
-    pigenc::eigen::dump<ArrayType>(outpig, array);
+    pigenc::stl::dump<VectorType>(outpig, vec);
     return true;
 }
 
 static
-bool eigen_round_trip(const pigenc::File& inpig, pigenc::File& outpig)
+bool round_tripper(const pigenc::File& inpig, pigenc::File& outpig)
 {
     std::string dtype = inpig.header().dtype();;
     std::cerr << "round trip with type " << dtype << std::endl;
-    if (dtype == "c")   { return ert<char>(inpig, outpig); }
-    if (dtype == "<i1") { return ert<int8_t>(inpig, outpig); }
-    if (dtype == "<u1") { return ert<uint8_t>(inpig, outpig); }
-    if (dtype == "<i2") { return ert<int16_t>(inpig, outpig); }
-    if (dtype == "<u2") { return ert<uint16_t>(inpig, outpig); }
-    if (dtype == "<i4") { return ert<int32_t>(inpig, outpig); }
-    if (dtype == "<u4") { return ert<uint32_t>(inpig, outpig); }
-    if (dtype == "<i8") { return ert<int64_t>(inpig, outpig); }
-    if (dtype == "<u8") { return ert<uint64_t>(inpig, outpig); }
-    if (dtype == "<f4") { return ert<float>(inpig, outpig); }
-    if (dtype == "<f8") { return ert<double>(inpig, outpig); }
+    if (dtype == "c")   { return rt<char>(inpig, outpig); }
+    if (dtype == "<i1") { return rt<int8_t>(inpig, outpig); }
+    if (dtype == "<u1") { return rt<uint8_t>(inpig, outpig); }
+    if (dtype == "<i2") { return rt<int16_t>(inpig, outpig); }
+    if (dtype == "<u2") { return rt<uint16_t>(inpig, outpig); }
+    if (dtype == "<i4") { return rt<int32_t>(inpig, outpig); }
+    if (dtype == "<u4") { return rt<uint32_t>(inpig, outpig); }
+    if (dtype == "<i8") { return rt<int64_t>(inpig, outpig); }
+    if (dtype == "<u8") { return rt<uint64_t>(inpig, outpig); }
+    if (dtype == "<f4") { return rt<float>(inpig, outpig); }
+    if (dtype == "<f8") { return rt<double>(inpig, outpig); }
 
     std::cerr << "unsupported dtype: " << dtype << std::endl;
     return false;
@@ -98,9 +111,9 @@ int unpack(std::string archive, bool round_trip = true)
 
         pigenc::File outpig;        
         if (round_trip) {
-            bool ok = eigen_round_trip(inpig, outpig);
+            bool ok = round_tripper(inpig, outpig);
             if (!ok) {
-                std::cerr << "ERROR eigen round trip failure\n";
+                std::cerr << "ERROR round trip failure\n";
                 return -1;
             }
             std::cerr << "Round tripped " << fname << std::endl;
@@ -169,7 +182,7 @@ int pack(std::string archive, int nmembers, char* member[], bool round_trip = tr
 
         if (round_trip) {
             std::cerr << "round trip " << fname << std::endl;
-            eigen_round_trip(inpig, outpig);
+            round_tripper(inpig, outpig);
         }
         else {
             outpig = inpig;

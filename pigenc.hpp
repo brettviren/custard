@@ -235,7 +235,7 @@ namespace pigenc {
                << "'fortran_order': " << tf << ", "
                << "'shape': (";
             if (shape_.size() == 1) {
-                ss << shape_[0] << ", ), }";
+                ss << shape_[0] << ",), }";
             }
             else {
                 std::string comma = "";

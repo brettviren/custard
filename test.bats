@@ -135,27 +135,27 @@ do_read () {
     srcdir=$(pwd)
     cd $outd/
 
+    mkdir orig
+    cd orig
     if [ "$ext" = "npy" ] ; then
         $srcdir/gen.py
     else
         cp $srcdir/*.$ext .
     fi
-    tar -cf gnu.tar *.${ext}
+    tar -cf ../gnu.tar *.${ext}
     if [ "$comp" = "yes" ] ; then
-        tar -czf gnu.tar.gz *.${ext}
-        tar -cjf gnu.tar.bz2 *.${ext}
+        tar -czf ../gnu.tar.gz *.${ext}
+        tar -cjf ../gnu.tar.bz2 *.${ext}
     fi
-    ls -l
+    cd ..
+    ls -lR
     pwd
-    rm *.$ext
-
     echo $texe
 
     tars=(gnu.tar)
     if [ "$comp" = "yes" ] ; then
         tars=(gnu.tar gnu.tar.bz2 gnu.tar.gz)
     fi
-
 
     for one in ${tars[*]}
     do
@@ -168,9 +168,9 @@ do_read () {
         [ "$status" -eq 0 ]
         for n in *.${ext}
         do
-            ls -l $n ../../$n
-            md5sum $n ../../$n
-            diff -u $n ../../$n
+            ls -l $n orig/$n
+            md5sum $n orig/$n
+            diff -u $n orig/$n
         done
     done
     date > okay
@@ -193,10 +193,10 @@ do_read () {
 }
 
 
-@test "test_custard_boost_pigenc_eigen write" {
-    do_write test_custard_boost_pigenc_eigen yes npy
+@test "test_custard_boost_pigenc write" {
+    do_write test_custard_boost_pigenc yes npy
 }
 
-@test "test_custard_boost_pigenc_eigen read" {
-    do_read test_custard_boost_pigenc_eigen yes npy
+@test "test_custard_boost_pigenc read" {
+    do_read test_custard_boost_pigenc yes npy
 }
