@@ -234,10 +234,17 @@ namespace pigenc {
             ss << "{'descr': '" << descr_ << "', "
                << "'fortran_order': " << tf << ", "
                << "'shape': (";
-            for (auto s : shape_) {
-                ss << s << ", ";
+            if (shape_.size() == 1) {
+                ss << shape_[0] << ", ), }";
             }
-            ss << "), }";
+            else {
+                std::string comma = "";
+                for (auto s : shape_) {
+                    ss << comma << s;
+                    comma = ", ";
+                }
+                ss << "), }";
+            }
             std::string dict = ss.str();
 
             int siz = 10 + dict.size();
@@ -287,7 +294,6 @@ namespace pigenc {
 
         std::ostream& write(std::ostream& so)
         {
-            std::cerr << "pigenc::Header::write: \"" << header_string_ << "\"\n";
             so.write(header_string_.data(), header_string_.size());
             return so;
         }

@@ -17,7 +17,7 @@
 template<typename Scalar>
 bool ert(const pigenc::File& inpig, pigenc::File& outpig)
 {
-    using ArrayType = Eigen::Array<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+    using ArrayType = Eigen::Array<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
     ArrayType array;
     bool ok = pigenc::eigen::load<ArrayType>(inpig, array);
     if (!ok) {

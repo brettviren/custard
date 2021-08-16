@@ -13,7 +13,7 @@ namespace pigenc::stl {
         using Scalar = typename VectorType::value_type;
         std::vector<size_t> shape;
         shape.push_back(vec.size());
-        const bool fortran_order = False
+        const bool fortran_order = false;
         pighead.set<Scalar>(shape, fortran_order);
     }
 
