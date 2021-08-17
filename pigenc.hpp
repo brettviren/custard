@@ -15,6 +15,7 @@
 
 namespace pigenc {
 
+
     using json = nlohmann::json;
 
     using shape_t = std::vector<size_t>;
