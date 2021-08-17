@@ -62,7 +62,7 @@ int unpack(std::string archive)
 }
 
 
-int pack(std::string archive, int nmembers, char* member[])
+int pack(std::string archive, size_t nmembers, char* member[])
 {
     boost::iostreams::filtering_ostream so;
     custard::output_filters(so, archive);

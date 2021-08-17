@@ -263,7 +263,7 @@ namespace pigenc {
             }
             ret.push_back('\n');
             header_string_ = ret;
-            assert(hlen+10 == str().size());
+            //assert(hlen+10 == str().size());
         }
 
         std::string str() const {

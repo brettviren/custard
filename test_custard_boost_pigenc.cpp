@@ -144,7 +144,7 @@ int unpack(std::string archive, bool round_trip = true)
 }
 
 static
-int pack(std::string archive, int nmembers, char* member[], bool round_trip = true)
+int pack(std::string archive, size_t nmembers, char* member[], bool round_trip = true)
 {
     boost::iostreams::filtering_ostream so;
     custard::output_filters(so, archive);
