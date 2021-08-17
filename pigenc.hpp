@@ -365,7 +365,7 @@ namespace pigenc {
         {
             head_.write(so);
             if (!so) { return so; }
-            std::cerr << "pigenc::File::write " << data_.size() << "\n";
+            // std::cerr << "pigenc::File::write " << data_.size() << "\n";
             so.write(&data_[0], data_.size());
             return so;
         }
