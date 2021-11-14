@@ -67,6 +67,7 @@ namespace pigenc {
     }
 
 
+    inline 
     std::string make_header(const std::string& desc, 
                             const shape_t& shape,
                             bool fortran_order=false)
@@ -99,21 +100,21 @@ namespace pigenc {
         return ret;
     }
 
-    template<typename T> std::string dtype() { return ""; }
-    template<> std::string dtype<char>()     { return "c"; }
-    template<> std::string dtype<int8_t>()   { return "<i1"; }
-    template<> std::string dtype<uint8_t>()  { return "<u1"; }
-    template<> std::string dtype<int16_t>()  { return "<i2"; }
-    template<> std::string dtype<uint16_t>() { return "<u2"; }
-    template<> std::string dtype<int32_t>()  { return "<i4"; }
-    template<> std::string dtype<uint32_t>() { return "<u4"; }
-    template<> std::string dtype<int64_t>()  { return "<i8"; }
-    template<> std::string dtype<uint64_t>() { return "<u8"; }
-    template<> std::string dtype<float>()    { return "<f4"; }
-    template<> std::string dtype<double>()   { return "<f8"; }
+    template<typename T> std::string dtype()        { return ""; }
+    template<> inline std::string dtype<char>()     { return "c"; }
+    template<> inline std::string dtype<int8_t>()   { return "<i1"; }
+    template<> inline std::string dtype<uint8_t>()  { return "<u1"; }
+    template<> inline std::string dtype<int16_t>()  { return "<i2"; }
+    template<> inline std::string dtype<uint16_t>() { return "<u2"; }
+    template<> inline std::string dtype<int32_t>()  { return "<i4"; }
+    template<> inline std::string dtype<uint32_t>() { return "<u4"; }
+    template<> inline std::string dtype<int64_t>()  { return "<i8"; }
+    template<> inline std::string dtype<uint64_t>() { return "<u8"; }
+    template<> inline std::string dtype<float>()    { return "<f4"; }
+    template<> inline std::string dtype<double>()   { return "<f8"; }
 
     // This assumes string like "...NN" where NN is number of bytes.
-    size_t dtype_size(std::string dt)
+    inline size_t dtype_size(std::string dt)
     {
         while (dt.size() and (dt[0]-'0' < 0 or dt[0]-'0' > 9)) {
             dt.erase(dt.begin());
