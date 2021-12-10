@@ -10,6 +10,7 @@
 #include <ostream>
 #include <string>
 #include <regex>
+#include <complex>
 
 #include "nlohmann/json.hpp"
 
@@ -111,6 +112,7 @@ namespace pigenc {
     template<> inline std::string dtype<int64_t>()  { return "<i8"; }
     template<> inline std::string dtype<uint64_t>() { return "<u8"; }
     template<> inline std::string dtype<float>()    { return "<f4"; }
+    template<> inline std::string dtype<std::complex<float>>()    { return "<c8"; }
     template<> inline std::string dtype<double>()   { return "<f8"; }
 
     // This assumes string like "...NN" where NN is number of bytes.
