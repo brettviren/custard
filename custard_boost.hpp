@@ -17,12 +17,67 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
+#include <boost/iostreams/filter/lzma.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 
 #include <boost/filesystem.hpp>
+#include <boost/process.hpp>
 
-// #include <iostream> // debug
+#include <regex>
+#include <sstream>
+
+#include <iostream> // debug
+
+namespace custard {
+    class proc_sink {
+      public:
+        typedef char char_type;
+        struct category :
+            public boost::iostreams::sink_tag,
+            public boost::iostreams::closable_tag
+        { };
+        proc_sink(const std::string& cmd, const std::vector<std::string>& args)
+        {
+            p = std::make_shared<impl>(cmd, args);
+        }
+        void close()
+        {
+            p->in.close();
+            p->in.pipe().close();
+            p->child.wait();
+        }
+        std::streamsize write(const char* s, std::streamsize n)
+        {
+            if (!p->child.running()) {
+                return 0;
+            }
+            if (!p->in) {
+                return 0;
+            }
+            p->in.write(s, n);
+            if (!p->in) {
+                return 0;
+            }
+            return n;
+        }
+      private:
+        struct impl {
+            impl(const std::string& cmd, const std::vector<std::string>& args)
+                : in{}, child(boost::process::search_path(cmd),
+                              boost::process::args(args),
+                              boost::process::std_out > stdout,
+                              boost::process::std_err > stderr,
+                              boost::process::std_in < in)
+            {
+            }
+            boost::process::opstream in;
+            boost::process::child child;
+        };
+        std::shared_ptr<impl> p;
+    };
+}
+
 
 namespace custard {
 
@@ -311,61 +366,73 @@ namespace custard {
         
     };
 
+    // Build input filtering stream based on parsing the filename.
     inline
     void input_filters(boost::iostreams::filtering_istream& in,
                        std::string inname)
     {
-        if (boost::algorithm::iends_with(inname, ".tar")) {
-            in.push(custard::tar_reader());
-        }
-        else if (boost::algorithm::iends_with(inname, ".tar.gz")) {
-            in.push(custard::tar_reader());
-        }
-        else if (boost::algorithm::iends_with(inname, ".tar.bz2")) {
+        auto has = [&](const std::string& things) {
+            return std::regex_search(inname, std::regex("[_.]("+things+")\\b"));
+        };
+
+        if (has("tar|tar.gz|tgz|tar.bz2|tbz|tbz2|tar.xz|txz|tar.pixz|tix|tpxz")) {
             in.push(custard::tar_reader());
         }
 
-        if (boost::algorithm::iends_with(inname, ".gz")) {
+        if (has("gz|tgz")) {
             in.push(boost::iostreams::gzip_decompressor());
         }
-        else if (boost::algorithm::iends_with(inname, ".bz2")) {
+        else if (has("bz2|tbz|tbz2")) {
             in.push(boost::iostreams::bzip2_decompressor());
+        }
+        else if (has("xz|txz|pixz|tix|tpxz")) {
+            // pixz makes xz-compatible files
+            in.push(boost::iostreams::lzma_decompressor());
         }
 
         in.push(boost::iostreams::file_source(inname));
     }
 
     /// Parse outname and based complete the filter ostream.  If
-    /// parsing fails, nothing is added to "out".
+    /// parsing fails, nothing is added to "out".  The compression
+    /// level is interpreted as being from 0-9, higher is more,
+    /// slower.
     inline
     void output_filters(boost::iostreams::filtering_ostream& out,
                         std::string outname,
-                        int level = boost::iostreams::zlib::default_compression)
+                        int level = 1)
     {
+        auto has = [&](const std::string& things) {
+            return std::regex_search(outname, std::regex("[_.]("+things+")\\b"));
+        };
+
         assuredir(outname);
 
         // Add tar writer if we see tar at the end.
-        if (boost::algorithm::iends_with(outname, ".tar")) {
-            out.push(custard::tar_writer());
-        }
-        else if (boost::algorithm::iends_with(outname, ".tar.gz")) {
-            out.push(custard::tar_writer());
-        }
-        else if (boost::algorithm::iends_with(outname, ".tar.bz2")) {
+        if (has("tar|tar.gz|tgz|tar.bz2|tbz|tbz2|tar.xz|txz|tar.pixz|tix|tpxz")) {
             out.push(custard::tar_writer());
         }
 
         // In addition, if compression is wanted, add the appropriate
         // filter next.
-
-        if (boost::algorithm::iends_with(outname, ".gz")) {
+        if (has("gz|tgz")) {
             out.push(boost::iostreams::gzip_compressor(level));
         }
-        else if (boost::algorithm::iends_with(outname, ".bz2")) {
-            out.push(boost::iostreams::bzip2_compressor());
+        else if (has("bz2|tbz|tbz2")) {
+            out.push(boost::iostreams::bzip2_compressor(level));
+        }
+        else if (has("xz|txz")) {
+            out.push(boost::iostreams::lzma_compressor(level));
+        }
+        else if (has("pixz|tix|tpxz")) {
+            // std::stringstream ss;
+            // ss << "-p 1 -" << level << " -o " << outname;
+            // std::cerr << ss.str() << std::endl;
+            out.push(custard::proc_sink("pixz", {"-p", "1", "-1", "-o", outname}));
+            return;
         }
 
-        // finally, we save to the actual file.
+        // finally, we save to the actual file
         out.push(boost::iostreams::file_sink(outname));
     }
 }

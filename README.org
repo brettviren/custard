@@ -27,10 +27,11 @@ provide desired functionality:
 
 - [[file:custard_boost.hpp][~custard_boost.hpp~]] :: adds *core* and *stream* support for
   ~boost::iostreams~ in the form of input and output filters.  These
-  filters may work along with Boost's ~gzip~ and ~bzip2~ filters to add
-  compressed ~tar~ streams.  Through the use of *custard stream codec*,
-  most details of the ~tar~ format need not be exposed to the
-  application.
+  filters may work along with Boost's ~lzmq~ (xz), ~gzip~ and ~bzip2~
+  filters or a provided filter to run external programs such as [[https://github.com/vasi/pixz/][pixz]]
+  to support compressed ~tar~ streams.  Through the use of *custard
+  stream codec*, most details of the ~tar~ format need not be exposed to
+  the application.
 
 *custard* also provides *pigenc* (still under development and may be
 broken out).  It provides this functionality:
@@ -44,15 +45,13 @@ broken out).  It provides this functionality:
 
 * TODO
 
-This package is still under major development.  Some things still
-needed:
+This package works but lacks some niceties.  Some things still needed:
 
 - [ ] version strings
 - [ ] debug/verbose logging
 - [ ] document custard stream codec
 - [ ] factor *pigenc* to allow use w/ or w/out *custard*
 - [ ] real installation (pkg-config, cmake)
-- [ ] copying info in each file
 
 * Installation
 
@@ -80,9 +79,9 @@ The tests may be run separate from building with:
 
 * Names
 
-The name *custard* comes from the mashing of C++ and the ~ustar~ "magic"
-string in tar files.  The name *pigenc* is somehow a mash of "Python",
-"Numpy", "Eigen" and "encode".
+The name *custard* comes from the mashing of the "C" in C++ and the
+~ustar~ "magic" string in tar files.  The name *pigenc* is somehow a mash
+of "Python", "Numpy", "Eigen" and "encode".
 
 * License
 
