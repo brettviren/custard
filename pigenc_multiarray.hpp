@@ -9,12 +9,11 @@
 
 namespace pigenc::multiarray {
 
-
     /// Dump an array into a pigenc header object
     template<typename ArrayType>
     void dump(pigenc::Header& pighead, const ArrayType& array)
     {
-        using Scalar = typename ArrayType::value_type;
+        using Scalar = typename ArrayType::element;
         std::vector<size_t> shape(array.num_dimensions(),0);
         for (size_t dim=0; dim<array.num_dimensions(); ++dim) {
             shape[dim] = array.shape()[dim];
@@ -51,7 +50,7 @@ namespace pigenc::multiarray {
     {
         const pigenc::Header& head = pig.header();
 
-        using Scalar = typename ArrayType::value_type;
+        using Scalar = typename ArrayType::element;
         const Scalar* dat = pig.as_type<Scalar>();
         if (!dat) { return false; }
 

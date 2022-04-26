@@ -101,7 +101,10 @@ namespace pigenc {
         return ret;
     }
 
-    template<typename T> std::string dtype()        { return ""; }
+    template<typename T> std::string dtype()        {
+        std::string tn = typeid(T).name();
+        throw std::domain_error("pigenc: unsupported type: " + tn);
+    }
     template<> inline std::string dtype<char>()     { return "c"; }
     template<> inline std::string dtype<int8_t>()   { return "<i1"; }
     template<> inline std::string dtype<uint8_t>()  { return "<u1"; }
@@ -115,14 +118,20 @@ namespace pigenc {
     template<> inline std::string dtype<std::complex<float>>()    { return "<c8"; }
     template<> inline std::string dtype<double>()   { return "<f8"; }
 
-    // This assumes string like "...NN" where NN is number of bytes.
+    // This assumes dtype string like above eg "...NN" where NN is number of bytes.
     inline size_t dtype_size(std::string dt)
     {
+        if (dt.empty()) {
+            throw std::domain_error("pigenc::dtype_size: empty dtype string");
+        }
+        if (dt.size() == 1 and dt[0] == 'c') {
+            return 1;           // char has no number.
+        }
         while (dt.size() and (dt[0]-'0' < 0 or dt[0]-'0' > 9)) {
             dt.erase(dt.begin());
         }
         if (dt.empty()) {
-            return 0;
+            throw std::domain_error("pigenc::dtype_size: unknown dtype");
         }
         return std::stol(dt);
     }
