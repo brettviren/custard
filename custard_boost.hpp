@@ -75,7 +75,7 @@ namespace custard {
         return boost::spirit::qi::parse(first, last, p, vars);
     }
 
-    // Base class for a member-at-a-time sink
+    // Base class for a member-at-a-time sink.
     class member_sink {
       public:
         typedef char char_type;

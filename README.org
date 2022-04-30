@@ -101,7 +101,9 @@ This package works but lacks some niceties.  Some things still needed:
   finally merging new name and body to produce an output custard
   stream.  The intention is to apply per file compression to tar
   contents.
-- [ ] ~tarlz~ format.  
+- [X] ~zip~ format
+- [ ] actually test ~zip~
+- [ ] refactor ~tar_writer~ to use the custard header parser
 
 * Installation
 
