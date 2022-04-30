@@ -15,7 +15,7 @@ all: $(testexe) $(tstflag)
 
 bin/test_%: test_%.cpp 
 	mkdir -p bin
-	$(CXX) $(CXXFLAGS) -o $@ $< -lboost_iostreams -lboost_filesystem
+	$(CXX) $(CXXFLAGS) -o $@ $< -lboost_iostreams -lboost_filesystem -lboost_system  -lz
 
 # test/%/okay: bin/%
 # 	$(BATS) -f $(notdir $<) test.bats && test -s $@

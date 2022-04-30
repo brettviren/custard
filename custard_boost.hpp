@@ -5,11 +5,14 @@
    between custard and tar codec.
  */
 
-#ifndef boost_custart_hpp
-#define boost_custart_hpp
+#ifndef custard_boost_hpp
+#define custard_boost_hpp
 
 #include "custard.hpp"
 #include "custard_stream.hpp"
+
+#define MINIZ_NO_ZLIB_APIS
+#include "miniz.hpp"
 
 #include <boost/iostreams/concepts.hpp>    // multichar_output_filter
 #include <boost/iostreams/operations.hpp> // write
@@ -24,12 +27,171 @@
 #include <boost/filesystem.hpp>
 #include <boost/process.hpp>
 
+// #define BOOST_SPIRIT_DEBUG
+#include <boost/spirit/include/qi.hpp>
+#include <boost/fusion/adapted/std_pair.hpp>
+
+#include <map>
+
 #include <regex>
 #include <sstream>
 
 #include <iostream> // debug
 
 namespace custard {
+
+    namespace qi = boost::spirit::qi;
+
+    using dictionary_t = std::map<std::string, std::string>;
+
+    template <typename Iterator>
+    struct parser : qi::grammar<Iterator, dictionary_t()>
+    {
+        using keyval_t = std::pair<std::string, std::string>;
+
+        parser() : parser::base_type(header)
+        {
+            header = qi::no_skip[+pair];
+            pair = qi::no_skip[keyword >> ' ' >> value >> '\n'];
+            keyword = qi::no_skip[qi::string("name") | qi::string("mode") | qi::string("mtime") | qi::string("uid") | qi::string("gid") | qi::string("uname") | qi::string("gname") | qi::string("body")];
+            value = qi::no_skip[+~qi::lit('\n')];
+
+            BOOST_SPIRIT_DEBUG_NODE(header);
+            BOOST_SPIRIT_DEBUG_NODE(pair);
+            BOOST_SPIRIT_DEBUG_NODE(keyword);
+            BOOST_SPIRIT_DEBUG_NODE(value);
+        }
+
+      private:
+        qi::rule<Iterator, dictionary_t()> header;
+        qi::rule<Iterator, keyval_t()> pair;
+        qi::rule<Iterator, std::string()> keyword, value;
+    };    
+
+    template <typename Iterator>
+    bool parse_vars(Iterator &first, Iterator last, dictionary_t & vars)
+    {
+        parser<Iterator> p;
+        return boost::spirit::qi::parse(first, last, p, vars);
+    }
+
+    // Base class for a member-at-a-time sink
+    class member_sink {
+      public:
+        typedef char char_type;
+        struct category :
+            public boost::iostreams::sink_tag,
+            public boost::iostreams::closable_tag
+        { };
+
+        virtual ~member_sink() {}
+
+        bool has(const std::string& key) {
+            return params.find(key) != params.end();
+        }
+
+        int ival(const std::string& key) {
+            return atoi(params[key].c_str());
+        }
+        size_t lval(const std::string& key) {
+            return atol(params[key].c_str());
+        }
+        std::string sval(const std::string& key) {
+            return params[key];
+        }
+
+        virtual void write_member() = 0;
+        // return how much we ate
+        std::streamsize write(const char* s, std::streamsize n)
+        {
+            buf.append(s, n);   // always slurp everything
+            if (state == State::inhead) {
+                std::string::const_iterator beg(buf.begin());
+                std::string::const_iterator end(buf.end());
+                bool ok = custard::parse_vars(beg, end, params);
+                if (!ok) {
+                    throw std::runtime_error("corrupt stream");
+                }
+                buf = std::string(beg, end); // more for later
+                if (! has("body")) {
+                    return n;
+                }
+                th.init(sval("name"), lval("body"));
+                if (has("mode")) th.set_mode(ival("mode"));
+                if (has("mtime")) th.set_mtime(lval("mtime"));
+                if (has("uid")) th.set_uid(lval("uid"));
+                if (has("gid")) th.set_gid(lval("gid"));
+                if (has("uname")) th.set_uname(sval("uname"));
+                if (has("gname")) th.set_gname(sval("gname"));
+                state = State::inbody;
+                return n;
+            }
+            if (state == State::inhead) {
+                if (buf.size() < th.size()) {
+                    return n;   // keep slurping the body
+                }
+                std::string next;
+                if (th.size() < buf.size()) {
+                    next = buf.substr(th.size(), buf.size()-th.size());
+                    buf.resize(th.size());
+                }
+                write_member();
+                th.clear();
+                buf = next;
+                state = State::inhead;
+                return n;
+            }
+
+            std::logic_error("this should never happen");
+            return n;
+        }
+
+      protected:
+        std::string buf;
+        Header th;
+
+      private:
+        enum class State { inhead, inbody };
+        State state{State::inhead};
+        dictionary_t params;
+    };
+
+    
+    class miniz_sink : public member_sink {
+      public:
+        
+        miniz_sink(const std::string& outname)
+            : outname(outname)
+        {
+            memset(&zip, 0, sizeof(zip));
+            if (!mz_zip_writer_init_file(&zip, outname.c_str(), 0)) {
+                throw std::runtime_error("failed to initialize miniz for " + outname);
+            }
+        }
+        virtual ~miniz_sink() {}
+
+        void close()
+        {
+            mz_zip_writer_finalize_archive(&zip);
+            mz_zip_writer_end(&zip);
+        }
+
+        virtual void write_member()
+        {
+            auto ok = mz_zip_writer_add_mem(
+                &zip, th.name().c_str(), buf.data(), buf.size(),
+                MZ_BEST_SPEED);
+            if (!ok) {
+                throw std::runtime_error("failed to write " + th.name());
+            }
+        }
+
+      private:
+        std::string outname;
+        mz_zip_archive zip;
+    };
+
+
     class proc_sink {
       public:
         typedef char char_type;
@@ -76,10 +238,6 @@ namespace custard {
         };
         std::shared_ptr<impl> p;
     };
-}
-
-
-namespace custard {
 
     inline
     bool assuredir(const std::string& pathname)
@@ -431,7 +589,10 @@ namespace custard {
             out.push(custard::proc_sink("pixz", {"-p", "1", "-1", "-o", outname}));
             return;
         }
-
+        else if (has("zip|npz")) {
+            out.push(custard::miniz_sink(outname));
+            return;
+        }
         // finally, we save to the actual file
         out.push(boost::iostreams::file_sink(outname));
     }

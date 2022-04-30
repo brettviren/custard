@@ -14,3 +14,9 @@ test
 junk*
 cut*
 *.npy
+test_qi
+test_miniz
+test_minizw
+*.d.*
+*.pixz
+*.zip

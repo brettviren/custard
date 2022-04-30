@@ -4,10 +4,10 @@
 
 * Overview
 
-*custard* provides support for reading and writing data in ~tar~ format to
-C++ applications in the form of a few "single-file, header-only"
-libraries.  An application may include only those headers needed to
-provide desired functionality:
+*custard* provides support for reading and writing data in ~tar~ and other
+formats to C++ applications in the form of a few "single-file,
+header-only" libraries.  An application may include only those headers
+needed to provide desired functionality:
 
 - [[file:custard.hpp][~custard.hpp~]] :: core support for encoding and decoding ~tar~ archive
   member headers through a ~custard::Header~ class.  The codec is via
@@ -34,7 +34,7 @@ provide desired functionality:
   the application.
 
 *custard* also provides *pigenc* (still under development and may be
-broken out).  It provides this functionality:
+broken out to its own package).  It provides this functionality:
 
 - [[file:pigenc.hpp][~pigenc.hpp~]] :: provides a codec compatible with Numpy ~.npy~ file
   format requiring minimal dependencies (~nlohmann::json~).
@@ -43,15 +43,65 @@ broken out).  It provides this functionality:
   serializing C++ numerical collection types such as ~Eigen::Array~ and
   ~std::vector~
 
+
+*custard* also provides *boost streams* for *zip* with the heavy lifting by
+[[https://github.com/richgel999/miniz/][miniz]].
+
+- [[file:custard_boost_miniz.hpp][~custard_boost_miniz.hpp~]]
+
+This needs the included ~miniz.hpp~ file which is created from the
+miniz "amalgamated" source.
+
+#+begin_example
+cp miniz/amalgamation/miniz.h miniz.hpp
+tail +2 miniz/amalgamation/miniz.c >> miniz.hpp
+#+end_example 
+
+The ~tail~ chops off the ~#include "miniz.h"~.
+
+* Custard Stream Codec
+
+The custard stream codec is essentially a simplification of the tar
+stream codec and can be used for other final formats such as zip.
+Formally, the stream is described as,
+
+#+begin_example
+   stream = *member
+   member = name *option body
+   name = "name" SP namestring LF
+   body = "body" SP numstring LF data
+   data = *OCTET
+   option = ("mode" / "mtime" / "uid" / "gid") SP numstring LF
+   option /= ("uname" / "gname" ) SP identstring LF
+#+end_example
+
+Informally, a custard stream consists of a sequence of members and
+each member a sequence of fields.  A field begins with a keyword
+literal string (eg. ~name~), followed by a space and then by a value
+which is terminated with a linefeed (~LF~).  The order of the fields
+are fixed though ~options~ may have arbitrary order.  An archive
+member (file) ~name~ must be the first, zero or more ~options~ may
+follow and the stream ends with a ~body~ field giving a string
+representation of a numeric value.  After the ~body~ field a sequence
+of arbitrary byte values but of a number fixed by the ~body~ value
+~numstring~ follow.  These bytes are the contents of the archive
+(file) member.
+
 * TODO
 
 This package works but lacks some niceties.  Some things still needed:
 
 - [ ] version strings
 - [ ] debug/verbose logging
-- [ ] document custard stream codec
+- [X] document custard stream codec
 - [ ] factor *pigenc* to allow use w/ or w/out *custard*
 - [ ] real installation (pkg-config, cmake)
+- [ ] add an ~arc_writer~ filter accepting a custard stream, appending a
+  suffix to each name, sending body through a given iostream and
+  finally merging new name and body to produce an output custard
+  stream.  The intention is to apply per file compression to tar
+  contents.
+- [ ] ~tarlz~ format.  
 
 * Installation
 
