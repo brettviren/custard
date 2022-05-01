@@ -31,7 +31,6 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
 
-#include <map>
 #include <vector>
 
 #include <regex>
@@ -42,8 +41,6 @@
 namespace custard {
 
     namespace qi = boost::spirit::qi;
-
-    using dictionary_t = std::map<std::string, std::string>;
 
     using buffer_t = std::vector<char>;
 
@@ -82,181 +79,121 @@ namespace custard {
         return boost::spirit::qi::parse(first, last, p, vars);
     }
 
-    // Base class for a member-at-a-time sink.
-    class member_sink {
+    class stream_parser {
+      public:
+
+        using parsed_t = std::vector<std::pair<dictionary_t, buffer_t>>;
+
+        // Call with new data
+        parsed_t feed(const char* s, std::streamsize n)
+        {
+            // always slurp everything
+            buf.insert(buf.end(), s, s+n);
+            while (proc()) { /* empty */ }
+            return std::move(collected);
+        }
+
+      private:
+        // return true if more on the plate, false if starved.
+        // Anything which is done gets collected.
+        bool proc()
+        {
+            if (state == State::inhead) {
+                buffer_t::const_iterator beg(buf.begin());
+                buffer_t::const_iterator end(buf.end());
+                params.clear();
+                bool ok = custard::parse_vars(beg, end, params);
+                if (!ok) {
+                    return false;
+                }
+                body_size = lval(params, "body");
+                buf = buffer_t(beg, end); // more for later
+                state = State::inbody;
+                return true;
+            }
+
+            if (state == State::inbody) {
+                if (buf.size() < body_size) {
+                    return false; // keep slurping body
+                }
+                auto mid = buf.begin()+body_size;
+                buffer_t keep(mid, buf.end());
+                buf.resize(mid-buf.begin());
+                collect(std::move(buf));
+                buf = std::move(keep);
+                state = State::inhead;
+                return true;
+            }
+            return false;
+        }
+
+        void collect(buffer_t&& give)
+        {
+            collected.push_back(std::make_pair(params, std::move(give)));
+            body_size = 0;
+            params.clear();
+        }
+
+      private:
+
+        buffer_t buf;           // buffer fed data
+        dictionary_t params;    // current member
+        size_t body_size{0};    // current member
+
+        enum class State { inhead, inbody };
+        State state{State::inhead};
+
+        parsed_t collected;     // temporary return
+    };
+
+    
+    class miniz_sink {
       public:
         typedef char char_type;
         struct category :
             public boost::iostreams::sink_tag,
             public boost::iostreams::closable_tag
         { };
-
-        virtual ~member_sink() {}
-
-        bool has(const std::string& key) {
-            return params.find(key) != params.end();
-        }
-
-        int ival(const std::string& key) {
-            return atoi(params[key].c_str());
-        }
-        size_t lval(const std::string& key) {
-            return atol(params[key].c_str());
-        }
-        std::string sval(const std::string& key) {
-            return params[key];
-        }
-
-        virtual void close_sink() = 0;
-        virtual void write_member() = 0;
-
-        // return true if more on the plate, false if starved
-        bool write_one()
-        {
-            size_t buf_size = buf.size();
-
-            if (!buf_size) {
-                return false;
-            }
-
-            // std::cerr << "write: one: state=" << (int)state
-            //           << " [" << buf.size() << "]\n";
-
-            if (state == State::inhead) {
-                buffer_t::const_iterator beg(buf.begin());
-                buffer_t::const_iterator end(buf.end());
-                bool ok = custard::parse_vars(beg, end, params);
-                if (!ok) {
-                    params.clear();
-                    return false;
-                }
-                buf = buffer_t(beg, end); // more for later
-                th.init(sval("name"), lval("body"));
-                if (has("mode")) th.set_mode(ival("mode"));
-                if (has("mtime")) th.set_mtime(lval("mtime"));
-                if (has("uid")) th.set_uid(lval("uid"));
-                if (has("gid")) th.set_gid(lval("gid"));
-                if (has("uname")) th.set_uname(sval("uname"));
-                if (has("gname")) th.set_gname(sval("gname"));
-                // std::cerr << "write: header:" << th.name()
-                //           << " size=" << th.size()
-                //           << " buf:[" << buf.size() << "]\n";
-                state = State::inbody;
-                // std::cerr << "write: going to state=" << (int)state
-                //           << " [" << buf.size() << "]\n";
-                return true;
-            }
-
-            if (state == State::inbody) {
-                if (buf.size() < th.size()) {
-                    return false; // keep slurping body
-                }
-                buffer_t next;
-                if (th.size() < buf.size()) {
-                    // save left-overs
-                    next = buffer_t(buf.begin()+th.size(), buf.end());
-                    // truncate to member size
-                    buf.resize(th.size());
-                }
-                write_member();
-                clear();
-                buf = next;
-                state = State::inhead;
-                // std::cerr << "write: going to state=" << (int)state
-                //           << " [" << buf.size() << "]\n";
-                return true;
-            }
-
-            return false;
-        }
         
-        void clear()
+        miniz_sink(const std::string& outname)
+            : zip(std::make_shared<mz_zip_archive>())
         {
-            th.clear();
-            buf.clear();
-            params.clear();
+            memset(zip.get(), 0, sizeof(mz_zip_archive));
+            if (!mz_zip_writer_init_file(zip.get(), outname.c_str(), 0)) {
+                std::cerr << "miniz_sink: failed to initialize miniz for " << outname << "\n";
+                throw std::runtime_error("failed to initialize miniz for " + outname);
+            }
         }
 
-        // return how much we ate
         std::streamsize write(const char* s, std::streamsize n)
         {
-            // std::cerr << "write: state=" << (int)state
-            //           << " given " << n << " held [" << buf.size() << "]\n";
+            auto got = parser.feed(s, n);
+            for (auto& [params, buf] : got) {
+                auto name = sval(params, "name");
 
-            // always slurp everything
-            buf.insert(buf.end(), s, s+n);
-
-            while (true) {
-                bool want_more = write_one();
-                if (want_more) {
-                    // std::cerr << "write: state=" << (int)state
-                    //           << " continuing with [" << buf.size() << "]\n";
-                    continue;
+                auto ok = mz_zip_writer_add_mem(
+                    zip.get(), name.c_str(), buf.data(), buf.size(),
+                    MZ_BEST_SPEED);
+                if (!ok) {
+                    std::cerr << "miniz_sink: failed to write " << name << "\n";
+                    throw std::runtime_error("failed to write " + name);
                 }
-                break;
+                // std::cerr << "miniz_sink: write: " << name << " ["<<buf.size()<<"]\n";
             }
-            // std::cerr << "write: state=" << (int)state
-            //           << " returning with [" << buf.size() << "]\n";
-
             return n;
         }
 
         void close()
-        {
-            if (buf.size()) {   // last file
-                // std::cerr << "write: state=" << (int)state
-                //           << " closing with [" << buf.size() << "]\n";
-                write_member();
-                clear();
-                state = State::inhead;
-            }
-            close_sink();
-        }
-
-      protected:
-        buffer_t buf;
-        Header th;
-
-      private:
-        enum class State { inhead, inbody };
-        State state{State::inhead};
-        dictionary_t params;
-    };
-
-    
-    class miniz_sink : public member_sink {
-      public:
-        
-        miniz_sink(const std::string& outname)
-        {
-            // filters need to be copyable
-            zip = std::make_shared<mz_zip_archive>();
-            memset(zip.get(), 0, sizeof(mz_zip_archive));
-            if (!mz_zip_writer_init_file(zip.get(), outname.c_str(), 0)) {
-                throw std::runtime_error("failed to initialize miniz for " + outname);
-            }
-        }
-        virtual ~miniz_sink() {}
-
-        void close_sink()
         {
             mz_zip_writer_finalize_archive(zip.get());
             mz_zip_writer_end(zip.get());
             zip = nullptr;
         }
 
-        virtual void write_member()
-        {
-            auto ok = mz_zip_writer_add_mem(
-                zip.get(), th.name().c_str(), buf.data(), buf.size(),
-                MZ_BEST_SPEED);
-            if (!ok) {
-                throw std::runtime_error("failed to write " + th.name());
-            }
-        }
 
       private:
-        // this class must be copyable
+        // this class must be copyable so put non-copyable into shared ptr
+        stream_parser parser;
         std::shared_ptr<mz_zip_archive> zip;
     };
 
@@ -325,134 +262,36 @@ namespace custard {
     class tar_writer : public boost::iostreams::multichar_output_filter {
       public:
 
-        std::streamsize slurp_header(const char* s, std::streamsize nin)
-        {
-            for (std::streamsize ind = 0; ind<nin; ++ind) {
-                char c = s[ind];
-                headstring.push_back(c);
-
-                if (c == '\n') { // just finished a value
-                    have_key = false;
-                    key_start = headstring.size(); // one past the newline
-                    if (in_body) {
-                        std::istringstream ss(headstring);
-                        read(ss, th);
-                        loc = 0;
-                        headstring.clear();
-                        key_start = 0;
-                        in_body = false;
-                        state = State::sendhead;
-                        return ind+1;
-                    }
-                    continue;
-                }
-
-                if (c == ' ') { 
-                    if (have_key) { 
-                        // just a random space in a value
-                        continue;
-                    }
-                    // we've just past the key
-                    have_key = true;
-                    in_body = false;
-                    std::string key = headstring.substr(key_start);
-                    // std::cerr << "custard write filter: found key: |" << key << "| at " << key_start 
-                    //           << " headstring: |" << headstring << "|\n";
-
-                    if (key == "body ") {
-                        in_body = true;
-                    }
-                    continue;
-                }
-            }
-
-            return nin;
-        }
-
-        template<typename Sink>
-        std::streamsize slurp_body(Sink& dest, const char* s, std::streamsize n)
-        {
-            std::streamsize remain = th.size() - loc;
-            std::streamsize take = std::min(n, remain);
-            boost::iostreams::write(dest, s, take);
-            loc += take;
-            if (loc == th.size()) {
-                // pad
-                size_t pad = 512 - loc%512;
-
-                for (size_t ind=0; ind<pad; ++ind) {
-                    boost::iostreams::put(dest, '\0');
-                };
-
-                loc = 0;
-                th.clear();
-                state = State::gethead;
-            }
-            assert(take >= 0 and take <= n);
-            return take;        
-        }
-    
-        template<typename Sink>
-        std::streamsize write_one(Sink& dest, const char* s, std::streamsize n)
-        {
-            if (state == State::gethead) {
-                return slurp_header(s, n);
-            }
-
-            if (state == State::sendhead) {
-                boost::iostreams::write(dest, (char*)th.as_bytes(), 512);
-                // std::cerr << "custard write filter: going to body, headstring: |" << headstring << "|\n";
-                state = State::body;
-            }
-
-            if (state == State::body) {
-                return slurp_body(dest, s, n);
-            }
-            return 0;
-        }
-
         template<typename Sink>
         std::streamsize write(Sink& dest, const char* buf, std::streamsize bufsiz)
         {
-            std::streamsize consumed = 0; // number taken from buf
-            const char* ptr = buf;
-            while (consumed < bufsiz) {
-                std::streamsize left = bufsiz - consumed;
-                auto took = write_one(dest, ptr, left);
-                if (took < 0) {
-                    return took;
+            auto got = parser.feed(buf, bufsiz);
+            for (auto& [params, buf] : got) {
+                auto th = make_header(params);
+                // std::cerr << "tar_writer: " << th.name()
+                //           << " [" << th.size() << "] = [" << buf.size() << "]\n";
+                boost::iostreams::write(dest, (char*)th.as_bytes(), 512);
+
+                boost::iostreams::write(dest, buf.data(), buf.size());
+                const size_t extra = buf.size() % 512;
+                if (extra) {
+                    const size_t pad = 512 - extra;
+                    for (size_t ind=0; ind<pad; ++ind) {
+                        boost::iostreams::put(dest, '\0');
+                    };
                 }
-                if (!took) {
-                    return consumed;
-                }
-                consumed += took;
-                ptr += took;
             }
             return bufsiz;
         }
 
         template<typename Sink>
         void close(Sink& dest) {
-            for (size_t ind=0; ind<2*512; ++ind) {
-                const char zero = '\0';
-                boost::iostreams::write(dest, &zero, 1);
-            };
+            buffer_t buf(1024, 0);
+            boost::iostreams::write(dest, buf.data(), buf.size());
         }
-      private:
-        custard::Header th;
 
-        // we slurp in the custard header string fully first
-        std::string headstring;
-        // the start of the current key in the headstring
-        size_t key_start{0};
-        // we have a seen a key in the current option
-        bool have_key{false};
-        // If we are in the middle of inputing the "body" key
-        bool in_body{false};
-        // where in the body we are
-        size_t loc{0};
-        enum class State { gethead, sendhead, body };
-        State state{State::gethead};
+      private:
+        stream_parser parser;
 
     };
 

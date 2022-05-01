@@ -17,6 +17,7 @@
 #include <sstream>
 #include <algorithm>
 
+#include <map>
 #include <iostream>
 #include <cassert>
 
@@ -294,6 +295,44 @@ namespace custard {
 
 
     };
+
+    using dictionary_t = std::map<std::string, std::string>;
+
+    inline bool
+    has(const dictionary_t& params, const std::string& key) {
+        return params.find(key) != params.end();
+    }
+    inline std::string
+    get(const dictionary_t& params, const std::string& key, const std::string& def="") {
+        auto it = params.find(key);
+        if (it == params.end()) {
+            return def;
+        }
+        return it->second;
+    }
+    inline int
+    ival(const dictionary_t& params, const std::string& key) {
+        return atoi(get(params, key).c_str());
+    }
+    inline size_t
+    lval(const dictionary_t& params, const std::string& key) {
+        return atol(get(params, key).c_str());
+    }
+    inline std::string
+    sval(const dictionary_t& params, const std::string& key) {
+        return get(params, key);
+    }
+    Header make_header(const dictionary_t& p)
+    {
+        Header th(sval(p, "name"), lval(p, "body"));
+        if (has(p, "mode"))  th.set_mode(ival(p, "mode"));
+        if (has(p, "mtime")) th.set_mtime(lval(p, "mtime"));
+        if (has(p, "uid"))   th.set_uid(lval(p, "uid"));
+        if (has(p, "gid"))   th.set_gid(lval(p, "gid"));
+        if (has(p, "uname")) th.set_uname(sval(p, "uname"));
+        if (has(p, "gname")) th.set_gname(sval(p, "gname"));
+        return th;
+    }
 
 }
 #endif
