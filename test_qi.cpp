@@ -14,43 +14,63 @@
   LF = '\n'
 */
 
-void test(std::string input)
+std::pair<bool, std::string> test(std::string input, custard::dictionary_t& table)
 {
-    std::cerr << "Parsing:\n\t" << std::quoted(input) << "\n";
-
     std::string::const_iterator f(input.begin());
     std::string::const_iterator l(input.end());
 
-    custard::dictionary_t table;
+    table.clear();
 
     bool ok = custard::parse_vars(f,l,table);
-    if (ok) {
-        std::cerr << "Success:\n";
-        bool found_body = false;
-        for (const auto& [k,v] : table) {
-            std::cerr << "\t" << std::quoted(k) << " = " << std::quoted(v) << std::endl;
-            if (k == "body") {
-                found_body = true;
-            }
-        }
-        if (!found_body) {
-            std::cerr << "but found no body\n";
-        }
-    }
-    else {
-        std::cerr << "Failed\n";
-    }
-    if (f!=l) {
-        std::cerr << "Unparsed: " << std::quoted(std::string(f,l)) << "\n";
-    }
-
+    return std::make_pair(ok, std::string(f,l));
 }
 int main()
 {
-    test("name foo.tar\nbody ");
-
-    test("name foo.tar\nmode 0x777\nbody 5\nhello");
-
-
+    custard::dictionary_t table;
+    std::string give;
+    
+    {
+        // should fail
+        give = "name foo.tar\nbody ";
+        auto [ok, left] = test(give, table);
+        assert(!ok);
+        assert(left == give);
+    }
+    {
+        // should succeed
+        give = "name foo.tar\nbody 0\n";
+        auto [ok, left] = test(give, table);
+        assert(ok);
+        assert(table["name"] == "foo.tar");
+        assert(table["body"] == "0");
+        assert(left == "");
+    }
+    {
+        // should succeed
+        give = "name foo.tar\nbody 0\nfoo bar";
+        auto [ok, left] = test(give, table);
+        assert(ok);
+        assert(table["name"] == "foo.tar");
+        assert(table["body"] == "0");
+        assert(left == "foo bar");
+    }
+    {
+        give = "name foo.tar\nmode 0x777\nbody 5\nhello";
+        auto [ok, left] = test(give, table);
+        assert(ok);
+        assert(left == "hello");
+        assert(table["name"] == "foo.tar");
+        assert(table["mode"] == "0x777");
+        assert(table["body"] == "5");
+    }
+    {
+        give = "name foo.tar\nmode 0x777\nbody 0\nblerg hello\n";
+        auto [ok, left] = test(give, table);
+        assert(ok);
+        assert(table["name"] == "foo.tar");
+        assert(table["mode"] == "0x777");
+        assert(table["body"] == "0");
+        assert(left == "blerg hello\n");
+    }
     return 0; 
 }

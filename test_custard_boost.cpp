@@ -71,10 +71,10 @@ int pack(std::string archive, size_t nmembers, char* member[])
         std::cerr << "stream open error: " << strerror(errno) << std::endl;
         return -1;
     }
-    assert(so.size() > 1);  // must have sink plus at least one filter
+    assert(so.size() > 0);
 
     std::cerr << "filtering ostream for " << archive
-              << " has " << so.size()-1 << " filters " << std::endl;
+              << " has " << so.size() << " elements " << std::endl;
 
     if (!so) {
         std::cerr << "stream open error: " << strerror(errno) << std::endl;
@@ -95,30 +95,40 @@ int pack(std::string archive, size_t nmembers, char* member[])
         si.read(&buf[0], siz);
         si.close();
 
-        std::cerr << "HEAD: |" << fname << "| -> " << archive << " " << siz << std::endl;
+        {
+            std::stringstream ss;
+            ss << "name " << fname << "\n"
+               << "body " << buf.size() << "\n";
+            size_t hsize = ss.str().size();
+            std::cerr << "HEAD: |" << fname << "| -> " << archive << " [" << hsize << "]\n";
+        }
 
         custard::write(so, fname, buf.size());
         if (!so) {
-            std::cerr << "header write error: " << strerror(errno) << std::endl;
-            return -1;
+            std::cerr << "custard header write error: "
+                      << strerror(errno) << " (" << errno << ")\n";
+            return errno;
         }
         //std::cerr << "FLUSH\n";
         //so.flush();
 
-        std::cerr << "FILE: |" << fname << "| -> " << archive << " " << siz << std::endl;
+        std::cerr << "FILE: |" << fname << "| -> " << archive << " [" << siz << "]\n";
 
         so.write((char*)buf.data(), buf.size());
         if (!so) {
-            std::cerr << "file write error: " << strerror(errno) << std::endl;
-            return -1;
+            std::cerr << "custard file write error: "
+                      << strerror(errno) << " (" << errno << ")\n";
+            return errno;
         }
         // std::cerr << "FLUSH\n";
         // so.flush();
+        std::cerr << "custard done " << ind+1 << "/" << nmembers << "\n";
     }
 
+    std::cerr << "custard removing archive file to close\n";
     so.pop();
     //out.pop();                  // remove the file to close.
-
+    std::cerr << "custard pack done\n";
     return 0;
 }
 

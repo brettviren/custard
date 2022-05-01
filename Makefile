@@ -2,7 +2,7 @@ CXX = g++
 EIGEN_INC = /usr/include/eigen3
 NLJS_INC = $(HOME)/opt/nljs/include
 
-CXXFLAGS = -std=c++17 -I $(EIGEN_INC) -I $(NLJS_INC) -Wpedantic -Wall 
+CXXFLAGS = -O3 -std=c++17 -I $(EIGEN_INC) -I $(NLJS_INC) -Wpedantic -Wall 
 BATS = bats
 
 testsrc = $(wildcard test_*.cpp)
