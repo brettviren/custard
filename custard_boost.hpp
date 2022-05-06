@@ -225,10 +225,13 @@ namespace custard {
         // return a "short read" when we reach end of a member.
         std::streamsize read(char* s, std::streamsize n)
         {
-            // Sitting just past end of a member buffer.
-            if (memptr == member.end()) { next_member(); }
-            // Out of members, EOF of the archive.
-            if (memind >= memnum) { return -1; } 
+            if (memptr == member.end()) {
+                next_member();
+            }
+            if (memptr == member.end()) {
+                // still then at EOF
+                return -1;
+            }
 
             std::streamsize left = member.end() - memptr;
             std::streamsize take = std::min(left, n);
