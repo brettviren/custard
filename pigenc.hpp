@@ -2,8 +2,8 @@
    pigenc is an array serialization codec for Numpy format.
  */
 
-#ifndef pigenc_hpp
-#define pigenc_hpp
+#ifndef PIGENC_HPP
+#define PIGENC_HPP
 
 #include <iostream>             // testing
 #include <istream>

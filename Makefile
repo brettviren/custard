@@ -14,9 +14,9 @@ testexe = $(patsubst test_%.cpp,bin/test_%, $(testsrc))
 all: $(testexe) $(tstflag)
 
 
-bin/test_%: test_%.cpp 
+bin/test_%: test_%.cpp miniz.c
 	mkdir -p bin
-	$(CXX) $(CXXFLAGS) -o $@ $< -lboost_iostreams -lboost_filesystem -lboost_system  -lz
+	$(CXX) $(CXXFLAGS) -o $@ $< miniz.c -lboost_iostreams -lboost_filesystem -lboost_system  -lz
 
 # test/%/okay: bin/%
 # 	$(BATS) -f $(notdir $<) test.bats && test -s $@

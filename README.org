@@ -43,21 +43,28 @@ broken out to its own package).  It provides this functionality:
   serializing C++ numerical collection types such as ~Eigen::Array~ and
   ~std::vector~
 
+*custard* also provides optional *boost streams* for *zip* with the heavy
+lifting by [[https://github.com/richgel999/miniz/][miniz]].  To build this support one must define
+~CUSTARD_BOOST_USE_MINIZ~ prior to including the Boost support:
 
-*custard* also provides *boost streams* for *zip* with the heavy lifting by
-[[https://github.com/richgel999/miniz/][miniz]].
+#+begin_src c++
+  #define CUSTARD_BOOST_USE_MINIZ
+  #include "custard_boost.hpp"
+#+end_src
 
-- [[file:custard_boost_miniz.hpp][~custard_boost_miniz.hpp~]]
-
-This needs the included ~miniz.hpp~ file which is created from the
-miniz "amalgamated" source.
+This requires the user to provide the "amalgamated" ~miniz.h~ in the
+include path and to compile the "amalgamated" ~miniz.c~ into a user
+library.  Copies of these file are provided by custard or may be
+retrieved by the user:
 
 #+begin_example
-cp miniz/amalgamation/miniz.h miniz.hpp
-tail +2 miniz/amalgamation/miniz.c >> miniz.hpp
+git clone https://github.com/richgel999/miniz.git
+cd miniz
+./amalgamate.sh
+cp amalgamation/miniz.h /path/to/user/include
+cp amalgamation/miniz.c /path/to/user/src
 #+end_example 
 
-The ~tail~ chops off the ~#include "miniz.h"~.
 
 * Custard Stream Codec
 

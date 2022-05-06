@@ -13,8 +13,8 @@
    option /= ("uname" / "gname" ) SP identstring LF
 
  */
-#ifndef custard_stream_hpp
-#define custard_stream_hpp
+#ifndef CUSTARD_STREAM_HPP
+#define CUSTARD_STREAM_HPP
 
 #include "custard.hpp"
 

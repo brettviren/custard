@@ -5,8 +5,8 @@
 
  */
 
-#ifndef custard_file_hpp
-#define custard_file_hpp
+#ifndef CUSTARD_FILE_HPP
+#define CUSTARD_FILE_HPP
 
 #include "custard.hpp"
 

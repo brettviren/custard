@@ -1,4 +1,4 @@
-#include "miniz.hpp"
+#include "miniz.h"
 
 #include <string>
 #include <fstream>

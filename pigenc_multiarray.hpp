@@ -1,8 +1,8 @@
 /**
    Serialize Boost.Multiarray with pigenc
  */
-#ifndef pigenc_multiarray_hpp
-#define pigenc_multiarray_hpp
+#ifndef PIGENC_MULTIARRAY_HPP
+#define PIGENC_MULTIARRAY_HPP
 
 #include "boost/multi_array/storage_order.hpp"
 #include "pigenc.hpp"

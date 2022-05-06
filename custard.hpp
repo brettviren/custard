@@ -4,8 +4,8 @@
    Provide support for tar header codec.
 */
 
-#ifndef custard_hpp
-#define custard_hpp
+#ifndef CUSTARD_HPP
+#define CUSTARD_HPP
 
 #include <istream>
 #include <cstring>

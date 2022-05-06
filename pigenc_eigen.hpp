@@ -1,8 +1,8 @@
 /**
    Serialize Eigen with pigenc
  */
-#ifndef pigenc_eigen_hpp
-#define pigenc_eigen_hpp
+#ifndef PIGENC_EIGEN_HPP
+#define PIGENC_EIGEN_HPP
 
 #include "pigenc.hpp"
 #include "Eigen/Core"

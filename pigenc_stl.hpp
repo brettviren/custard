@@ -1,5 +1,5 @@
-#ifndef custard_pigenc_hpp
-#define custard_pigenc_hpp
+#ifndef PIGENC_STL_HPP
+#define PIGENC_STL_HPP
 
 #include "pigenc.hpp"
 

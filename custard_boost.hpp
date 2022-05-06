@@ -5,14 +5,14 @@
    between custard and tar codec.
  */
 
-#ifndef custard_boost_hpp
-#define custard_boost_hpp
+#ifndef CUSTARD_BOOST_HPP
+#define CUSTARD_BOOST_HPP
 
 #include "custard.hpp"
 #include "custard_stream.hpp"
 
 #define MINIZ_NO_ZLIB_APIS
-#include "miniz.hpp"
+#include "miniz.h"
 
 #include <boost/iostreams/concepts.hpp>    // multichar_output_filter
 #include <boost/iostreams/operations.hpp> // write
