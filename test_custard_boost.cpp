@@ -10,10 +10,10 @@ int unpack(std::string archive)
         return -1;
     }
 
-    assert(si.size() > 1);      // must have sink plus at least one filter
+    assert(si.size() > 0);
 
     std::cerr << "filtering istream for " << archive
-              << " has " << si.size()-1 << " filters " << std::endl;
+              << " has " << si.size() << " filters " << std::endl;
 
     while (true) {
         if (si.eof()) {

@@ -163,8 +163,8 @@ namespace custard {
         {
             memset(zip.get(), 0, sizeof(mz_zip_archive));
             if (!mz_zip_writer_init_file(zip.get(), outname.c_str(), 0)) {
-                std::cerr << "miniz_sink: failed to initialize miniz for " << outname << "\n";
-                throw std::runtime_error("failed to initialize miniz for " + outname);
+                //std::cerr << "miniz_sink: failed to initialize miniz for " << outname << "\n";
+                throw std::runtime_error("failed to initialize miniz writing to " + outname);
             }
         }
 
@@ -178,7 +178,7 @@ namespace custard {
                     zip.get(), name.c_str(), buf.data(), buf.size(),
                     MZ_BEST_SPEED);
                 if (!ok) {
-                    std::cerr << "miniz_sink: failed to write " << name << "\n";
+                    //std::cerr << "miniz_sink: failed to write " << name << "\n";
                     throw std::runtime_error("failed to write " + name);
                 }
                 // std::cerr << "miniz_sink: write: " << name << " ["<<buf.size()<<"]\n";
@@ -199,7 +199,100 @@ namespace custard {
         stream_parser parser;
         std::shared_ptr<mz_zip_archive> zip;
     };
-#endif
+
+    class miniz_source {
+      public:
+        typedef char char_type;
+        struct category :
+            public boost::iostreams::source_tag,
+            public boost::iostreams::closable_tag
+        { };
+
+        miniz_source(const std::string& inname)
+            : zip(std::make_shared<mz_zip_archive>())
+        {
+            memset(zip.get(), 0, sizeof(mz_zip_archive));
+            if (!mz_zip_reader_init_file(zip.get(), inname.c_str(), 0)) {
+                //std::cerr << "miniz_sink: failed to initialize miniz for " << inname << "\n";
+                throw std::runtime_error("failed to initialize miniz reading from " + inname);
+            }
+            memnum = mz_zip_reader_get_num_files(zip.get());
+            memind = 0;
+            memptr = member.end();
+        }
+
+        // Read up to n, return number read or -1 for EOF.  Will
+        // return a "short read" when we reach end of a member.
+        std::streamsize read(char* s, std::streamsize n)
+        {
+            // Sitting just past end of a member buffer.
+            if (memptr == member.end()) { next_member(); }
+            // Out of members, EOF of the archive.
+            if (memind >= memnum) { return -1; } 
+
+            std::streamsize left = member.end() - memptr;
+            std::streamsize take = std::min(left, n);
+            std::copy(memptr, memptr+take, s);
+            memptr += take;
+            return take;            
+        }
+
+        void close()
+        {
+            member.clear();
+            memptr = member.end();
+            mz_zip_reader_end(zip.get());
+            zip = nullptr;
+        }
+
+      private:
+        std::shared_ptr<mz_zip_archive> zip;
+        size_t memnum{0}, memind{0};
+        std::vector<char> member;
+        std::vector<char>::iterator memptr{member.end()};
+
+        // Read in the next member, return its index.
+        size_t next_member() {
+            if (memind >= memnum) {
+                member.clear();
+                memptr = member.end();
+                return memnum;
+            }
+
+            const size_t index = memind;
+            ++memind;
+
+            mz_zip_archive_file_stat fs;
+            if (!mz_zip_reader_file_stat(zip.get(), index, &fs)) {
+                mz_zip_reader_end(zip.get());
+                throw std::runtime_error("failed to stat miniz member");
+            }
+            bool isdir = mz_zip_reader_is_file_a_directory(zip.get(), index);
+            if (isdir) {
+                return next_member();
+            }
+            const size_t bsize = fs.m_uncomp_size;
+
+            std::stringstream ss;
+            ss << "name " << fs.m_filename << "\nbody " << bsize << "\n";
+            const std::string head = ss.str();
+            const size_t hsize = head.size();
+
+            member.resize(hsize + bsize, 0);
+            memptr = member.begin();
+
+            std::copy(head.begin(), head.end(), member.begin());
+            auto ok = mz_zip_reader_extract_to_mem(
+                zip.get(), index, member.data()+hsize, bsize, 0);
+            if (!ok) {
+                mz_zip_reader_end(zip.get());
+                throw std::runtime_error("failed to read miniz member");
+            }
+            return index;
+        }
+    };
+
+#endif  // miniz
 
     class proc_sink {
       public:
@@ -449,6 +542,14 @@ namespace custard {
         else if (has("xz|txz|pixz|tix|tpxz")) {
             // pixz makes xz-compatible files
             in.push(boost::iostreams::lzma_decompressor());
+        }
+        else if (has("zip|npz")) {
+#ifdef CUSTARD_BOOST_USE_MINIZ
+            in.push(custard::miniz_source(inname));
+            return;
+#else
+            throw std::runtime_error("zip/npz file support requires compilation with CUSTARD_BOOST_USE_MINIZ");
+#endif
         }
 
         in.push(boost::iostreams::file_source(inname));
