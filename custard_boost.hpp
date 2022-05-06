@@ -11,8 +11,10 @@
 #include "custard.hpp"
 #include "custard_stream.hpp"
 
+#ifdef CUSTARD_BOOST_USE_MINIZ
 #define MINIZ_NO_ZLIB_APIS
 #include "miniz.h"
+#endif
 
 #include <boost/iostreams/concepts.hpp>    // multichar_output_filter
 #include <boost/iostreams/operations.hpp> // write
@@ -147,6 +149,7 @@ namespace custard {
     };
 
     
+#ifdef CUSTARD_BOOST_USE_MINIZ
     class miniz_sink {
       public:
         typedef char char_type;
@@ -196,7 +199,7 @@ namespace custard {
         stream_parser parser;
         std::shared_ptr<mz_zip_archive> zip;
     };
-
+#endif
 
     class proc_sink {
       public:
@@ -490,9 +493,15 @@ namespace custard {
             return;
         }
         else if (has("zip|npz")) {
+#ifdef CUSTARD_BOOST_USE_MINIZ
             out.push(custard::miniz_sink(outname));
             return;
+#else
+            throw std::runtime_error("zip/npz file support requires compilation with CUSTARD_BOOST_USE_MINIZ");
+#endif
         }
+
+
         // finally, we save to the actual file
         out.push(boost::iostreams::file_sink(outname));
     }

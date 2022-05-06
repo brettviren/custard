@@ -322,6 +322,7 @@ namespace custard {
     sval(const dictionary_t& params, const std::string& key) {
         return get(params, key);
     }
+    inline
     Header make_header(const dictionary_t& p)
     {
         Header th(sval(p, "name"), lval(p, "body"));
